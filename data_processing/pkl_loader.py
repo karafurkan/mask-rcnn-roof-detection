@@ -13,14 +13,14 @@ PATH_MASK_PKL = (
     "/home/furkan/Desktop/pkl_files/masks/"
 )
 
-TRAIN_IMAGE_PATH = "/home/furkan/Projects/master_project/mask_rcnn/dataset/train/images"
-TRAIN_MASK_PATH = "/home/furkan/Projects/master_project/mask_rcnn/dataset/train/masks"
+TRAIN_IMAGE_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/dataset/train/images"
+TRAIN_MASK_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/dataset/train/masks"
 
-VAL_IMAGE_PATH = "/home/furkan/Projects/master_project/mask_rcnn/dataset/val/images"
-VAL_MASK_PATH = "/home/furkan/Projects/master_project/mask_rcnn/dataset/val/masks"
+VAL_IMAGE_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/dataset/val/images"
+VAL_MASK_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/dataset/val/masks"
 
-TEST_IMAGE_PATH = "/home/furkan/Projects/master_project/mask_rcnn/dataset/test/images"
-TEST_MASK_PATH = "/home/furkan/Projects/master_project/mask_rcnn/dataset/test/masks"
+TEST_IMAGE_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/dataset/test/images"
+TEST_MASK_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/dataset/test/masks"
 
 reduced_classes = [
     "Background",  # 0
@@ -93,7 +93,7 @@ def process_masks(filename="masks.pkl", counter=0):
     return counter
 
 
-def create_train_val_test_split(validation_percent=10, test_percent=5):
+def create_train_val_test_split(validation_percent=5, test_percent=2):
     image_files = [f for f in os.listdir(TRAIN_IMAGE_PATH) if isfile(join(TRAIN_IMAGE_PATH, f))]
     random.shuffle(image_files)
 
@@ -136,6 +136,6 @@ if __name__ == "__main__":
         img_counter = process_images(filename=image_file, counter=img_counter)
         print(f"Processing mask file: {mask_file}")
         mask_counter = process_masks(filename=mask_file, counter=mask_counter)
-        if img_counter > 5000:
+        if img_counter > 7000:
             break
     create_train_val_test_split()
