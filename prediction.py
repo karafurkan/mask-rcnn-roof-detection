@@ -94,7 +94,7 @@ def predict(model, loader, score_threshold=0.8):
                     colors.append("lightgreen")
                 if label == "Flat":
                     colors.append("blue")
-            
+
             boxes = torchvision.ops.box_convert(boxes=accepted_pred["boxes"], in_fmt="xywh", out_fmt="xyxy")
             test_image = test_image.float()
             test_image = test_image * 255

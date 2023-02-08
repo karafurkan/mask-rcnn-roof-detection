@@ -11,9 +11,10 @@ import matplotlib.patches as mpatches
 from matplotlib import patches
 from time import time
 from torch.utils.data import DataLoader
-
+import utilities.utils as utils
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+HIDDEN_LAYER = 512
 
 
 def view(images, labels, n=2, std=1, mean=0, idx=0):
@@ -45,15 +46,20 @@ def view(images, labels, n=2, std=1, mean=0, idx=0):
     plt.savefig(f"test/{labels[0]['image_id']}.png")
 
 
-def train(model, optimizer, n_epochs=10):
+def train(model, train_loader, val_loader, optimizer, n_epochs=10):
     # Perform training loop for n epochs
     iter_loss = []
     loss_list = []
     model.train()
     model = model.double()
+
+    accuracy_list = []
+    dice_score_list = []
+    miou_list = []
+    pred_scores_list = []
     for epoch in tqdm(range(n_epochs)):
         loss_epoch = []
-        loop = tqdm(data_loader_train)
+        loop = tqdm(train_loader)
         for idx, (images, targets) in enumerate(loop):
             # Move images and target to device (cpu or cuda)
             images = list(image.to(device).double() for image in images)
@@ -67,28 +73,30 @@ def train(model, optimizer, n_epochs=10):
             loss_epoch.append(losses.item())
 
             loop.set_postfix(loss=losses.item())
+
         iter_loss.append(loss_epoch)
         loss_epoch_mean = np.mean(loss_epoch)
         loss_list.append(loss_epoch_mean)
         print("Average loss for epoch = {:.4f} ".format(loss_epoch_mean))
-        
+
+        accuracy, dice_score, miou, pred_scores = utils.validate_model(val_loader, model, device=device)
+        accuracy_list.append(accuracy)
+        dice_score_list.append(dice_score)
+        miou_list.append(miou)
+        pred_scores_list.append(pred_scores)
         # Save model
-        torch.save(model.state_dict(), f"checkpoints/my_checkpoint_epoch_{epoch}.pth.tar")
+        utils.save_checkpoint(model.state_dict(), f"hl_{HIDDEN_LAYER}/cp_{epoch}.pth.tar")
+
     np.save(f"losses/iter_loss.npy", np.asarray(iter_loss))
     np.save(f"losses/mean_loss.npy", np.asarray(loss_epoch_mean))
 
 if __name__ == "__main__":
 
-    images_root = "dataset/train"
+    train_images_root = "dataset/train"
+    val_images_root = "dataset/val"
     batch_size = 2
-    dataset_train = ImageDataset(
-        images_root, transforms=torchvision.transforms.ToTensor()
-    )
 
-    data_loader_train = DataLoader(
-        dataset_train, batch_size=batch_size, shuffle=False, collate_fn=lambda x: list(zip(*x))
-    )
-    print(len(data_loader_train))
+    train_loader, val_loader = utils.get_loaders(train_images_root, val_images_root, batch_size)
 
     # images, labels = next(iter(data_loader_train))
     # for batch_idx, (images, labels) in enumerate(data_loader_train):
@@ -105,7 +113,7 @@ if __name__ == "__main__":
 
     # now get the number of input features for the mask classifier
     in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
-    hidden_layer = 512
+    hidden_layer = HIDDEN_LAYER
     # and replace the mask predictor with a new one
     model.roi_heads.mask_predictor = MaskRCNNPredictor(
         in_features_mask, hidden_layer, num_classes
@@ -115,6 +123,8 @@ if __name__ == "__main__":
 
     params = [p for p in model.parameters() if p.requires_grad]
     # optimizer = torch.optim.Adam(params, lr=0.001)
-    optimizer = torch.optim.SGD(params, lr=0.001, momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.SGD(params,
+                                lr=0.001, momentum=0.9, weight_decay=0.0005)
 
-    train(model=model, optimizer=optimizer, n_epochs=10)
+    train(model=model, train_loader=train_loader, val_loader=val_loader,
+          optimizer=optimizer, n_epochs=10)
