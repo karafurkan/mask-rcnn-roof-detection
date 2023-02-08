@@ -7,10 +7,7 @@ from dataset import TestDataset
 from torch.utils.data import DataLoader
 import cv2
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib import patches
 import torchvision.transforms.functional as F
-from torchvision.utils import make_grid
 from torchvision.utils import draw_bounding_boxes
 from torchvision.utils import draw_segmentation_masks
 
@@ -91,7 +88,13 @@ def predict(model, loader, score_threshold=0.8):
                     labels.append(reduced_class_names[idx])
 
             # Change the colors according to the object type in the image
-            colors = ["blue"] * len(accepted_pred["boxes"])
+            colors = []
+            for label in labels:
+                if label == "Gable":
+                    colors.append("lightgreen")
+                if label == "Flat":
+                    colors.append("blue")
+            
             boxes = torchvision.ops.box_convert(boxes=accepted_pred["boxes"], in_fmt="xywh", out_fmt="xyxy")
             test_image = test_image.float()
             test_image = test_image * 255
@@ -102,7 +105,7 @@ def predict(model, loader, score_threshold=0.8):
                 continue
 
             # Render boxes and labels on the test image
-            boxes_image = draw_bounding_boxes(test_image, boxes, labels=labels, font="LiberationMono-Regular", colors=colors, width=5, font_size=25)
+            boxes_image = draw_bounding_boxes(test_image, boxes, labels=labels, colors=colors, font="LiberationMono-Regular", width=5, font_size=25)
 
             # Render masks on the test image
             num_classes = 3
