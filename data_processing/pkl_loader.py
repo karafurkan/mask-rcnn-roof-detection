@@ -48,26 +48,26 @@ def reduce_number_of_classes(mask):
     new_mask[np.where(mask == 1)] = 2
     new_mask[np.where(mask == 2)] = 2
 
-    new_mask[np.where(mask == 4)] = 3
-    new_mask[np.where(mask == 5)] = 3
+    new_mask[np.where(mask == 4)] = 2
+    new_mask[np.where(mask == 5)] = 2
 
-    new_mask[np.where(mask == 6)] = 4
-    new_mask[np.where(mask == 7)] = 4
+    new_mask[np.where(mask == 6)] = 2
+    new_mask[np.where(mask == 7)] = 2
 
-    new_mask[np.where(mask == 8)] = 5
-    new_mask[np.where(mask == 9)] = 5
+    new_mask[np.where(mask == 8)] = 2
+    new_mask[np.where(mask == 9)] = 2
 
-    new_mask[np.where(mask == 10)] = 6
-    new_mask[np.where(mask == 11)] = 6
+    new_mask[np.where(mask == 10)] = 2
+    new_mask[np.where(mask == 11)] = 2
 
-    new_mask[np.where(mask == 12)] = 7
-    new_mask[np.where(mask == 13)] = 7
+    new_mask[np.where(mask == 12)] = 2
+    new_mask[np.where(mask == 13)] = 2
 
-    new_mask[np.where(mask == 14)] = 8
-    new_mask[np.where(mask == 15)] = 8
+    new_mask[np.where(mask == 14)] = 2
+    new_mask[np.where(mask == 15)] = 2
 
-    new_mask[np.where(mask == 16)] = 9
-    new_mask[np.where(mask == 17)] = 9
+    new_mask[np.where(mask == 16)] = 2
+    new_mask[np.where(mask == 17)] = 2
 
     return new_mask
 
@@ -130,10 +130,12 @@ if __name__ == "__main__":
     img_counter = 0
     mask_counter = 0
 
-    # for image_file in image_files:
-    #     mask_file = "masks_" + image_file.split("_")[1]
-    #     print(f"Processing image file: {image_file}")
-    #     img_counter = process_images(filename=image_file, counter=img_counter)
-    #     print(f"Processing mask file: {mask_file}")
-    #     mask_counter = process_masks(filename=mask_file, counter=mask_counter)
+    for image_file in image_files:
+        mask_file = "masks_" + image_file.split("_")[1]
+        print(f"Processing image file: {image_file}")
+        img_counter = process_images(filename=image_file, counter=img_counter)
+        print(f"Processing mask file: {mask_file}")
+        mask_counter = process_masks(filename=mask_file, counter=mask_counter)
+        if img_counter > 5000:
+            break
     create_train_val_test_split()
