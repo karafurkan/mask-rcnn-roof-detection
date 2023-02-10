@@ -13,11 +13,7 @@ from torchvision.utils import draw_segmentation_masks
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-reduced_classes = [
-    "Background",  # 0
-    "Flat",  # 1
-    "Gable" # 3
-]
+reduced_classes = ["Background", "Flat", "Gable"]  # 0  # 1  # 3
 
 reduced_class_names = {i: class_name for i, class_name in enumerate(reduced_classes)}
 
@@ -29,12 +25,12 @@ def load_model():
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
-    hidden_layer = 256
+    hidden_layer = 512
     model.roi_heads.mask_predictor = MaskRCNNPredictor(
         in_features_mask, hidden_layer, num_classes
     )
 
-    PATH = "checkpoints/my_checkpoint_epoch_7.pth.tar"
+    PATH = "checkpoints/cp_0.pth.tar"
     model = model.to(DEVICE)
     model = model.double()
     model.load_state_dict(torch.load(PATH, map_location=DEVICE))
@@ -58,7 +54,7 @@ def show(imgs, index):
     plt.savefig(f"results/{index}.png", dpi=300)
 
 
-def predict(model, loader, score_threshold=0.8):
+def predict(model, loader, score_threshold=0.6):
     for image_idx, data in enumerate(loader):
         test_image = data.squeeze(0).double()
         test_image = test_image.to(device=DEVICE)
@@ -75,7 +71,7 @@ def predict(model, loader, score_threshold=0.8):
             accepted_pred["masks"] = pred[0]["masks"][indexes]
 
             # If no boxes found, skip the rendering boxes and mask process
-            if (len(accepted_pred["boxes"]) == 0):
+            if len(accepted_pred["boxes"]) == 0:
                 show([test_image, test_image, test_image], image_idx)
 
             # Create labels from indexes
@@ -95,7 +91,9 @@ def predict(model, loader, score_threshold=0.8):
                 if label == "Flat":
                     colors.append("blue")
 
-            boxes = torchvision.ops.box_convert(boxes=accepted_pred["boxes"], in_fmt="xywh", out_fmt="xyxy")
+            boxes = torchvision.ops.box_convert(
+                boxes=accepted_pred["boxes"], in_fmt="xywh", out_fmt="xyxy"
+            )
             test_image = test_image.float()
             test_image = test_image * 255
             test_image = test_image.to(torch.uint8)
@@ -105,12 +103,23 @@ def predict(model, loader, score_threshold=0.8):
                 continue
 
             # Render boxes and labels on the test image
-            boxes_image = draw_bounding_boxes(test_image, boxes, labels=labels, colors=colors, font="LiberationMono-Regular", width=5, font_size=25)
+            boxes_image = draw_bounding_boxes(
+                test_image,
+                boxes,
+                labels=labels,
+                colors=colors,
+                # font="LiberationMono-Regular",
+                # width=5,
+                # font_size=25,
+            )
 
             # Render masks on the test image
             num_classes = 3
             class_dim = 0
-            all_classes_masks = accepted_pred["masks"].argmax(class_dim) == torch.arange(num_classes)[:, None, None, None]
+            all_classes_masks = (
+                accepted_pred["masks"].argmax(class_dim)
+                == torch.arange(num_classes)[:, None, None, None]
+            )
             all_classes_masks = all_classes_masks.swapaxes(0, 1)
 
             final_result = [
@@ -125,12 +134,9 @@ def predict(model, loader, score_threshold=0.8):
 
 if __name__ == "__main__":
     test_root = "dataset/test/images"
-    test_dataset = TestDataset(
-        test_root, transforms=torchvision.transforms.ToTensor()
-    )
+    test_dataset = TestDataset(test_root, transforms=torchvision.transforms.ToTensor())
 
-    loader = DataLoader(
-        test_dataset, batch_size=1, shuffle=False)
+    loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
     model = load_model()
 

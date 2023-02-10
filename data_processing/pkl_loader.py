@@ -7,20 +7,20 @@ from os.path import isfile, join
 import shutil
 
 PATH_IMAGE_PKL = (
-    "/home/furkan/Desktop/pkl_files/images/"
+    "pkl_files/images/"
 )
 PATH_MASK_PKL = (
-    "/home/furkan/Desktop/pkl_files/masks/"
+    "pkl_files/masks/"
 )
 
-TRAIN_IMAGE_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/dataset/train/images"
-TRAIN_MASK_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/dataset/train/masks"
+TRAIN_IMAGE_PATH = "dataset/train/images"
+TRAIN_MASK_PATH = "dataset/train/masks"
 
-VAL_IMAGE_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/dataset/val/images"
-VAL_MASK_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/dataset/val/masks"
+VAL_IMAGE_PATH = "dataset/val/images"
+VAL_MASK_PATH = "dataset/val/masks"
 
-TEST_IMAGE_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/dataset/test/images"
-TEST_MASK_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/dataset/test/masks"
+TEST_IMAGE_PATH = "dataset/test/images"
+TEST_MASK_PATH = "dataset/test/masks"
 
 reduced_classes = [
     "Background",  # 0

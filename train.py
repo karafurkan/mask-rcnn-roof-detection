@@ -3,14 +3,11 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 import torch
 import numpy as np
-import os
 from tqdm import tqdm
 from dataset import ImageDataset
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from matplotlib import patches
 from time import time
-from torch.utils.data import DataLoader
 import utilities.utils as utils
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -57,6 +54,9 @@ def train(model, train_loader, val_loader, optimizer, n_epochs=10):
     dice_score_list = []
     miou_list = []
     pred_scores_list = []
+    accuracy, dice_score, miou, pred_scores = utils.validate_model(
+        val_loader, model, device=device
+    )
     for epoch in tqdm(range(n_epochs)):
         loss_epoch = []
         loop = tqdm(train_loader)
@@ -79,16 +79,28 @@ def train(model, train_loader, val_loader, optimizer, n_epochs=10):
         loss_list.append(loss_epoch_mean)
         print("Average loss for epoch = {:.4f} ".format(loss_epoch_mean))
 
-        accuracy, dice_score, miou, pred_scores = utils.validate_model(val_loader, model, device=device)
+        accuracy, dice_score, miou, pred_scores = utils.validate_model(
+            val_loader, model, device=device
+        )
         accuracy_list.append(accuracy)
         dice_score_list.append(dice_score)
         miou_list.append(miou)
         pred_scores_list.append(pred_scores)
         # Save model
-        utils.save_checkpoint(model.state_dict(), f"hl_{HIDDEN_LAYER}/cp_{epoch}.pth.tar")
+        utils.save_checkpoint(
+            model.state_dict(), f"hl_{HIDDEN_LAYER}/cp_{epoch}.pth.tar"
+        )
 
-    np.save(f"losses/iter_loss.npy", np.asarray(iter_loss))
-    np.save(f"losses/mean_loss.npy", np.asarray(loss_epoch_mean))
+    utils.save_metric_scores(
+        loss_epoch_mean=loss_epoch_mean,
+        iter_loss=iter_loss,
+        accuracy_score=accuracy_list,
+        dice_score=dice_score_list,
+        miou_score=miou_list,
+        pred_score=pred_scores_list,
+        file_name=f"hl_{HIDDEN_LAYER}_",
+    )
+
 
 if __name__ == "__main__":
 
@@ -96,7 +108,9 @@ if __name__ == "__main__":
     val_images_root = "dataset/val"
     batch_size = 2
 
-    train_loader, val_loader = utils.get_loaders(train_images_root, val_images_root, batch_size)
+    train_loader, val_loader = utils.get_loaders(
+        train_images_root, val_images_root, num_workers=0, batch_size=batch_size
+    )
 
     # images, labels = next(iter(data_loader_train))
     # for batch_idx, (images, labels) in enumerate(data_loader_train):
@@ -123,8 +137,12 @@ if __name__ == "__main__":
 
     params = [p for p in model.parameters() if p.requires_grad]
     # optimizer = torch.optim.Adam(params, lr=0.001)
-    optimizer = torch.optim.SGD(params,
-                                lr=0.001, momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.SGD(params, lr=0.001, momentum=0.9, weight_decay=0.0005)
 
-    train(model=model, train_loader=train_loader, val_loader=val_loader,
-          optimizer=optimizer, n_epochs=10)
+    train(
+        model=model,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        optimizer=optimizer,
+        n_epochs=10,
+    )

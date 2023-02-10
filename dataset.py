@@ -15,7 +15,6 @@ reduced_class_names = {i: class_name for i, class_name in enumerate(reduced_clas
 class_numbers = [i for i in range(1, len(reduced_classes))]
 
 
-
 def reduce_number_of_classes(mask):
     mask_bool = np.logical_and(mask != 0, mask != 3)
     mask[mask_bool] = 2
@@ -45,12 +44,14 @@ def extract_data_from_mask(mask_image):
     masks = []
     boxes = []
     labels = []
-    
+
     is_no_object = True
 
     for class_number in class_numbers:
         binary_mask = (mask_image == class_number).astype(np.uint8)
-        contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(
+            binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
 
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
@@ -125,7 +126,7 @@ class ImageDataset(torch.utils.data.Dataset):
         target["image_id"] = image_id
         # target["area"] = area
         # target["iscrowd"] = iscrowd
- 
+
         if self.transforms is not None:
             img = self.transforms(img)
             # img = self.transforms(img)
