@@ -101,23 +101,25 @@ def get_test_loader(
 
 def compute_iou(pred_masks, target_masks, n_classes=3):
     ious = []
-    for cls in range(n_classes):
-        pred_inds = pred_masks == cls
-        target_inds = target_masks == cls
-        # BUG: dimension error here: 108
-        intersection = (pred_inds[target_inds]).long().sum().float()
-        union = (
-            pred_inds.long().sum().float()
-            + target_inds.long().sum().float()
-            - intersection
-        )
-        if union == 0:
-            ious.append(
-                float("nan")
-            )  # if there is no ground truth, do not include in evaluation
-        else:
-            ious.append(intersection / union)
-    return ious
+    for i in range(pred_masks.shape[0]):
+        pred_mask = pred_masks[i].squeeze(1)
+        target_mask = target_masks[i]
+        for cls in range(n_classes):
+            pred_inds = pred_mask == cls
+            target_inds = target_mask == cls
+            intersection = (pred_inds & target_inds).long().sum().float()
+            union = (
+                pred_inds.long().sum().float()
+                + target_inds.long().sum().float()
+                - intersection
+            )
+            if union == 0:
+                ious.append(
+                    float("nan")
+                )  # if there is no ground truth, do not include in evaluation
+            else:
+                ious.append(intersection / union)
+    return torch.tensor(ious)
 
 
 def compute_miou(pred_masks, target_masks, n_classes=3):
@@ -163,6 +165,24 @@ def mean_accuracy(pred_masks, target_masks, n_classes=3):
     return mean_acc
 
 
+def compute_f1_score(pred_masks, target_masks, n_classes=3):
+    f1_scores = []
+    for cls in range(n_classes):
+        pred_inds = (pred_masks == cls).long()
+        target_inds = (target_masks == cls).long()
+        tp = (pred_inds & target_inds).sum().float()
+        fp = (pred_inds & (~target_inds)).sum().float()
+        fn = ((~pred_inds) & target_inds).sum().float()
+        precision = tp / (tp + fp) if tp + fp > 0 else 0
+        recall = tp / (tp + fn) if tp + fn > 0 else 0
+        f1_scores.append(
+            2 * precision * recall / (precision + recall)
+            if precision + recall > 0
+            else 0
+        )
+    return torch.tensor(f1_scores)
+
+
 def validate_model(loader, model, device="cuda"):
     """Calculate the accuracy of the model.
 
@@ -176,6 +196,7 @@ def validate_model(loader, model, device="cuda"):
     dice_scores = 0
     miou_scores = 0
     pred_scores = 0
+    f1_scores = 0
     model.eval()
 
     with torch.no_grad():
@@ -198,7 +219,10 @@ def validate_model(loader, model, device="cuda"):
             accuracy_scores += mean_accuracy(
                 pred_masks=pred_masks, target_masks=target_masks
             )
-            miou_scores += compute_miou(
+            # miou_scores += compute_miou(
+            #     pred_masks=pred_masks, target_masks=target_masks
+            # )
+            f1_scores += compute_f1_score(
                 pred_masks=pred_masks, target_masks=target_masks
             )
             dice_scores += mean_dice_score(
@@ -210,14 +234,16 @@ def validate_model(loader, model, device="cuda"):
     dice_score = dice_scores / len(loader)
     miou_score = miou_scores / len(loader)
     pred_score = pred_scores / len(loader)
+    f1_score = f1_scores / len(loader)
 
     print(f"Accuracy score: {accuracy_score}")
     print(f"Dice score: {dice_score}")
     print(f"mIoU score: {miou_score}")
+    print(f"F1 score: {f1_score}")
     print(f"Pred score: {pred_score}")
 
     model.train()
-    return accuracy_score, dice_score, miou_score, pred_score
+    return accuracy_score, dice_score, miou_score, pred_score, f1_score
 
 
 def save_metric_scores(
@@ -227,6 +253,7 @@ def save_metric_scores(
     dice_score,
     miou_score,
     pred_score,
+    f1_score,
     file_name="hl_256_",
 ):
     path = "metric_scores/" + file_name + "loss_epoch.npy"
@@ -246,6 +273,9 @@ def save_metric_scores(
 
     path = "metric_scores/" + file_name + "pred_score.npy"
     np.save(path, np.asarray(pred_score))
+
+    path = "metric_scores/" + file_name + "f1_score.npy"
+    np.save(path, np.asarray(f1_score))
 
 
 def plot_loss_graph(losses):
