@@ -83,9 +83,9 @@ def prepare_target_boxes_and_masks(test_image, target):
     boxes = torchvision.ops.box_convert(
         boxes=target["boxes"], in_fmt="xywh", out_fmt="xyxy"
     )
-    test_image = test_image.float()
-    test_image = test_image * 255
-    test_image = test_image.to(torch.uint8)
+    # test_image = test_image.float()
+    # test_image = test_image * 255
+    # test_image = test_image.to(torch.uint8)
 
     # Render boxes and labels on the test image
     boxes_image = draw_bounding_boxes(
