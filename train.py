@@ -54,6 +54,7 @@ def train(model, train_loader, val_loader, optimizer, n_epochs=10):
     dice_score_list = []
     miou_list = []
     pred_scores_list = []
+    f1_scores_list = []
     accuracy, dice_score, miou, pred_scores = utils.validate_model(
         val_loader, model, device=device
     )
@@ -79,13 +80,14 @@ def train(model, train_loader, val_loader, optimizer, n_epochs=10):
         loss_list.append(loss_epoch_mean)
         print("Average loss for epoch = {:.4f} ".format(loss_epoch_mean))
 
-        accuracy, dice_score, miou, pred_scores = utils.validate_model(
+        accuracy, dice_score, miou, pred_scores, f1_scores = utils.validate_model(
             val_loader, model, device=device
         )
         accuracy_list.append(accuracy)
         dice_score_list.append(dice_score)
         miou_list.append(miou)
         pred_scores_list.append(pred_scores)
+        f1_scores_list.append(f1_scores)
         # Save model
         utils.save_checkpoint(
             model.state_dict(), f"hl_{HIDDEN_LAYER}/cp_{epoch}.pth.tar"
@@ -98,6 +100,7 @@ def train(model, train_loader, val_loader, optimizer, n_epochs=10):
         dice_score=dice_score_list,
         miou_score=miou_list,
         pred_score=pred_scores_list,
+        f1_score=f1_scores_list,
         file_name=f"hl_{HIDDEN_LAYER}_",
     )
 
