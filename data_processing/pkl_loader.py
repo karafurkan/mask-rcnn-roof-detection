@@ -6,12 +6,8 @@ import os
 from os.path import isfile, join
 import shutil
 
-PATH_IMAGE_PKL = (
-    "pkl_files/images/"
-)
-PATH_MASK_PKL = (
-    "pkl_files/masks/"
-)
+PATH_IMAGE_PKL = "/home/furkan/Desktop/pkl_files/images/"
+PATH_MASK_PKL = "/home/furkan/Desktop/pkl_files/masks/"
 
 TRAIN_IMAGE_PATH = "dataset/train/images"
 TRAIN_MASK_PATH = "dataset/train/masks"
@@ -21,6 +17,27 @@ VAL_MASK_PATH = "dataset/val/masks"
 
 TEST_IMAGE_PATH = "dataset/test/images"
 TEST_MASK_PATH = "dataset/test/masks"
+
+
+# 0: Background
+# 1: East_Tilt<35
+# 2: East_Tilt>35
+# 3: Flat
+# 4: North_Tilt<35
+# 5: North_Tilt>35
+# 6: Northeast_Tilt<35
+# 7: Northeast_Tilt>35
+# 8: Northwest_Tilt<35
+# 9: Northwest_Tilt>35
+# 10: South_Tilt<35
+# 11: South_Tilt>35
+# 12: Southeast_Tilt<35
+# 13: Southeast_Tilt>35
+# 14: Southwest_Tilt<35
+# 15: Southwest_Tilt>35
+# 16: West_Tilt<35
+# 17: West_Tilt>35
+
 
 reduced_classes = [
     "Background",  # 0
@@ -43,31 +60,33 @@ def reduce_number_of_classes(mask):
     height, width = mask.shape[:2]
     new_mask = np.zeros((height, width, 1), dtype=np.uint8)
     new_mask[np.where(mask == 0)] = 0
-    new_mask[np.where(mask == 3)] = 1
 
     new_mask[np.where(mask == 1)] = 2
     new_mask[np.where(mask == 2)] = 2
 
-    new_mask[np.where(mask == 4)] = 2
-    new_mask[np.where(mask == 5)] = 2
+    new_mask[np.where(mask == 4)] = 3
+    new_mask[np.where(mask == 5)] = 3
 
-    new_mask[np.where(mask == 6)] = 2
-    new_mask[np.where(mask == 7)] = 2
+    new_mask[np.where(mask == 6)] = 4
+    new_mask[np.where(mask == 7)] = 4
 
-    new_mask[np.where(mask == 8)] = 2
-    new_mask[np.where(mask == 9)] = 2
+    new_mask[np.where(mask == 8)] = 5
+    new_mask[np.where(mask == 9)] = 5
 
-    new_mask[np.where(mask == 10)] = 2
-    new_mask[np.where(mask == 11)] = 2
+    new_mask[np.where(mask == 10)] = 6
+    new_mask[np.where(mask == 11)] = 6
 
-    new_mask[np.where(mask == 12)] = 2
-    new_mask[np.where(mask == 13)] = 2
+    new_mask[np.where(mask == 12)] = 7
+    new_mask[np.where(mask == 13)] = 7
 
-    new_mask[np.where(mask == 14)] = 2
-    new_mask[np.where(mask == 15)] = 2
+    new_mask[np.where(mask == 14)] = 8
+    new_mask[np.where(mask == 15)] = 8
 
-    new_mask[np.where(mask == 16)] = 2
-    new_mask[np.where(mask == 17)] = 2
+    new_mask[np.where(mask == 16)] = 9
+    new_mask[np.where(mask == 17)] = 9
+
+    # Convert Flat to 1
+    new_mask[np.where(mask == 3)] = 1
 
     return new_mask
 
@@ -93,8 +112,10 @@ def process_masks(filename="masks.pkl", counter=0):
     return counter
 
 
-def create_train_val_test_split(validation_percent=5, test_percent=2):
-    image_files = [f for f in os.listdir(TRAIN_IMAGE_PATH) if isfile(join(TRAIN_IMAGE_PATH, f))]
+def create_train_val_test_split(validation_percent=3, test_percent=1):
+    image_files = [
+        f for f in os.listdir(TRAIN_IMAGE_PATH) if isfile(join(TRAIN_IMAGE_PATH, f))
+    ]
     random.shuffle(image_files)
 
     number_of_val_imgs = int((len(image_files) * validation_percent) / 100)
@@ -109,7 +130,9 @@ def create_train_val_test_split(validation_percent=5, test_percent=2):
         if idx == number_of_val_imgs:
             break
 
-    image_files = [f for f in os.listdir(TRAIN_IMAGE_PATH) if isfile(join(TRAIN_IMAGE_PATH, f))]
+    image_files = [
+        f for f in os.listdir(TRAIN_IMAGE_PATH) if isfile(join(TRAIN_IMAGE_PATH, f))
+    ]
     random.shuffle(image_files)
     # Move to test image folder
     for idx, img in enumerate(image_files):
@@ -136,6 +159,6 @@ if __name__ == "__main__":
         img_counter = process_images(filename=image_file, counter=img_counter)
         print(f"Processing mask file: {mask_file}")
         mask_counter = process_masks(filename=mask_file, counter=mask_counter)
-        if img_counter > 7000:
+        if img_counter > 9000:
             break
     create_train_val_test_split()

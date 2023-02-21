@@ -4,7 +4,6 @@ import torch
 from PIL import Image
 import cv2
 
-
 reduced_classes = [
     "Background",  # 0
     "Flat",  # 1
@@ -13,14 +12,6 @@ reduced_classes = [
 
 reduced_class_names = {i: class_name for i, class_name in enumerate(reduced_classes)}
 class_numbers = [i for i in range(1, len(reduced_classes))]
-
-
-def reduce_number_of_classes(mask):
-    mask_bool = np.logical_and(mask != 0, mask != 3)
-    mask[mask_bool] = 2
-    mask[mask == 3] = 1
-
-    return mask
 
 
 def find_threshold(mask, id):
@@ -78,9 +69,10 @@ def extract_data_from_mask(mask_image):
 
 
 class ImageDataset(torch.utils.data.Dataset):
-    def __init__(self, root, transforms):
+    def __init__(self, root, transforms, resize=True):
         self.root = root
         self.transforms = transforms
+        self.resize = resize
         # load all image files, sorting them to
         # ensure that they are aligned
         self.imgs = list(sorted(os.listdir(os.path.join(root, "images"))))
@@ -92,71 +84,40 @@ class ImageDataset(torch.utils.data.Dataset):
         mask_path = os.path.join(self.root, "masks", self.masks[idx])
 
         img = Image.open(img_path).convert("RGB")
-        mask = Image.open(mask_path)
-        # img = cv2.imread(img_path)
-        # mask = cv2.imread(mask_path, 0)
+        mask = Image.open(mask_path).convert("L")
+
+        # if self.resize:
+        #     img = img.resize((256, 256))
+        #     mask = mask.resize((256, 256))
 
         mask = np.array(mask)
 
-        mask = reduce_number_of_classes(mask)
+        # Uncomment to visualize the mask
+        # _mask = np.expand_dims(mask, 2)
+        # cv2.imshow("image window", _mask * 40)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
-        # instances are encoded as different colors
-        obj_ids = np.unique(mask)
-        # first id is the background, so remove it
-        obj_ids = obj_ids[1:]
-        # get bounding box coordinates for each mask
-        num_objs = len(obj_ids)
-
-        # convert everything into a torch.Tensor
         boxes, labels, masks = extract_data_from_mask(mask)
 
+        boxes = np.array(boxes, dtype=np.float32)
+        labels = np.array(labels, dtype=np.int64)
+        masks = np.array(masks, dtype=np.uint8)
         boxes = torch.as_tensor(boxes, dtype=torch.float32)
         labels = torch.as_tensor(labels, dtype=torch.int64)
         masks = torch.as_tensor(masks, dtype=torch.uint8)
-        # masks = torch.tensor([]) # torch.tensor(masks, dtype=torch.uint8)
         image_id = torch.tensor([idx])
-        # area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
-        # suppose all instances are not crowd
-        # iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
 
         target = {}
         target["boxes"] = boxes
         target["labels"] = labels
         target["masks"] = masks
         target["image_id"] = image_id
-        # target["area"] = area
-        # target["iscrowd"] = iscrowd
 
         if self.transforms is not None:
             img = self.transforms(img)
-            # img = self.transforms(img)
-            # img, target = self.transforms(img, target)
 
         return img, target
-
-    def __len__(self):
-        return len(self.imgs)
-
-
-class TestDataset(object):
-    def __init__(self, root, transforms=None):
-        self.root = root
-        # self.transforms = transforms
-        self.transforms = []
-        if transforms is not None:
-            self.transforms.append(transforms)
-
-        self.imgs = list(sorted(os.listdir(root)))
-
-    def __getitem__(self, idx):
-        img_path = os.path.join(self.root, self.imgs[idx])
-
-        img = Image.open(img_path).convert("RGB")
-
-        for transform in self.transforms:
-            img = transform(img)
-
-        return img.double()
 
     def __len__(self):
         return len(self.imgs)
