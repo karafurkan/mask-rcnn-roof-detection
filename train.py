@@ -131,7 +131,7 @@ if __name__ == "__main__":
     train_images_root = "dataset/train"
     val_images_root = "dataset/val"
     batch_size = 1
-    num_classes = 10
+    num_classes = 3
 
     train_loader, val_loader = utils.get_loaders(
         train_images_root, val_images_root, batch_size, resize=True

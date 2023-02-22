@@ -112,7 +112,7 @@ def prepare_masks_and_boxes(num_classes, image, masks, boxes, labels=None, color
     all_classes_masks = all_classes_masks.swapaxes(0, 1)
 
     final_result = [
-        draw_segmentation_masks(img, masks=mask, alpha=0.6)  # colors here?
+        draw_segmentation_masks(img, masks=mask, alpha=0.6)
         for img, mask in zip([image], all_classes_masks)
     ]
     final_result.insert(0, image)

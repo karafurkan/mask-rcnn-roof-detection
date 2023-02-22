@@ -15,8 +15,8 @@ TRAIN_MASK_PATH = "dataset/train/masks"
 VAL_IMAGE_PATH = "dataset/val/images"
 VAL_MASK_PATH = "dataset/val/masks"
 
-TEST_IMAGE_PATH = "dataset/test/images"
-TEST_MASK_PATH = "dataset/test/masks"
+TEST_IMAGE_PATH = "/home/furkan/Desktop/dataset_2_class/test/images"
+TEST_MASK_PATH = "/home/furkan/Desktop/dataset_2_class/test/masks"
 
 
 # 0: Background
@@ -64,26 +64,26 @@ def reduce_number_of_classes(mask):
     new_mask[np.where(mask == 1)] = 2
     new_mask[np.where(mask == 2)] = 2
 
-    new_mask[np.where(mask == 4)] = 3
-    new_mask[np.where(mask == 5)] = 3
+    new_mask[np.where(mask == 4)] = 2
+    new_mask[np.where(mask == 5)] = 2
 
-    new_mask[np.where(mask == 6)] = 4
-    new_mask[np.where(mask == 7)] = 4
+    new_mask[np.where(mask == 6)] = 2
+    new_mask[np.where(mask == 7)] = 2
 
-    new_mask[np.where(mask == 8)] = 5
-    new_mask[np.where(mask == 9)] = 5
+    new_mask[np.where(mask == 8)] = 2
+    new_mask[np.where(mask == 9)] = 2
 
-    new_mask[np.where(mask == 10)] = 6
-    new_mask[np.where(mask == 11)] = 6
+    new_mask[np.where(mask == 10)] = 2
+    new_mask[np.where(mask == 11)] = 2
 
-    new_mask[np.where(mask == 12)] = 7
-    new_mask[np.where(mask == 13)] = 7
+    new_mask[np.where(mask == 12)] = 2
+    new_mask[np.where(mask == 13)] = 2
 
-    new_mask[np.where(mask == 14)] = 8
-    new_mask[np.where(mask == 15)] = 8
+    new_mask[np.where(mask == 14)] = 2
+    new_mask[np.where(mask == 15)] = 2
 
-    new_mask[np.where(mask == 16)] = 9
-    new_mask[np.where(mask == 17)] = 9
+    new_mask[np.where(mask == 16)] = 2
+    new_mask[np.where(mask == 17)] = 2
 
     # Convert Flat to 1
     new_mask[np.where(mask == 3)] = 1
