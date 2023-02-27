@@ -15,8 +15,8 @@ TRAIN_MASK_PATH = "dataset/train/masks"
 VAL_IMAGE_PATH = "dataset/val/images"
 VAL_MASK_PATH = "dataset/val/masks"
 
-TEST_IMAGE_PATH = "/home/furkan/Desktop/dataset_2_class/test/images"
-TEST_MASK_PATH = "/home/furkan/Desktop/dataset_2_class/test/masks"
+TEST_IMAGE_PATH = "dataset/test/images"
+TEST_MASK_PATH = "dataset/test/masks"
 
 
 # 0: Background
