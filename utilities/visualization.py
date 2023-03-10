@@ -4,6 +4,7 @@ import torchvision.transforms.functional as F
 from torchvision.utils import draw_bounding_boxes
 from torchvision.utils import draw_segmentation_masks
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import numpy as np
 
 
@@ -83,6 +84,53 @@ def create_labels_and_colors(class_names, labels):
             colors.append("lightblue")
 
     return labels, colors
+
+
+def blend_image_masks(image: np.array, mask: np.array, savepath: str):
+    image = np.moveaxis(image.numpy(), 0, -1)
+    labels = {
+        0: "Background",
+        1: "Flat",
+        2: "North",
+        3: "Northeast",
+        4: "East",
+        5: "Southeast",
+        6: "South",
+        7: "Southwest",
+        8: "West",
+        9: "Northwest",
+    }
+    fig, ax = plt.subplots(1, 3, figsize=(19, 6))
+    for i in range(0, 10):
+        mask[i, 0] = i
+    ax[0].imshow(image)
+    ax[1].imshow(image, cmap="gray")
+    ax[1].imshow(mask, alpha=0.4, cmap="jet")
+    im = ax[2].imshow(mask)
+    for axes in ax:
+        axes.set_axis_off()
+        axes.get_xaxis().set_visible(False)
+        axes.get_yaxis().set_visible(False)
+        axes.set_xticklabels([])
+        axes.set_yticklabels([])
+    plt.subplots_adjust(wspace=0, hspace=0)
+    # get the colors of the values, according to the
+    # colormap used by imshow
+    colors = [im.cmap(im.norm(label)) for label in labels]
+    # create a patch (proxy artist) for every color
+    patches = [
+        mpatches.Patch(color=colors[i], label=labels[i]) for i in range(len(labels))
+    ]
+    # put those patched as legend-handles into the legend
+    plt.legend(
+        handles=patches,
+        bbox_to_anchor=(1.05, 1),
+        loc=2,
+        borderaxespad=0.0,
+        prop={"size": 6},
+    )
+    plt.savefig(savepath, bbox_inches="tight")
+    plt.close()
 
 
 def prepare_masks_and_boxes(num_classes, image, masks, boxes, labels=None, colors=None):

@@ -56,16 +56,6 @@ def predict(model, loader, num_classes, score_threshold=0.75):
             test_image = test_image * 255
             test_image = test_image.to(torch.uint8)
 
-            ##### TEST
-
-            # for i in range(len(accepted_pred["masks"])):
-            #     cv2.imshow("image window", accepted_pred["masks"][i][0].cpu().numpy())
-            #     # add wait key. window waits until user presses a key
-            #     cv2.waitKey(0)
-            #     # and finally destroy/close all open windows
-            #     cv2.destroyAllWindows()
-            ######
-
             # Create labels from indexes
             _labels = pred[0]["labels"][indexes].tolist()
 
@@ -106,9 +96,9 @@ def predict(model, loader, num_classes, score_threshold=0.75):
 if __name__ == "__main__":
     num_classes = 3
     hidden_layer = 256
-    cp_path = "checkpoints/hl_256/cp_4.pth.tar"
+    cp_path = "checkpoints/hl_256/cleaned_cp_14.pth.tar"
 
-    test_images_root = "dataset/val/"
+    test_images_root = "dataset/test/"
     _, test_loader = utils.get_loaders(
         None, test_images_root, num_workers=0, batch_size=1, resize=False
     )

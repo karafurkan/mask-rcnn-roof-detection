@@ -106,24 +106,35 @@ def visualize_data(train_loader, num_classes):
         test_image = test_image * 255
         test_image = test_image.to(torch.uint8)
 
-        target_labels, target_colors = vis_utils.create_labels_and_colors(
-            reduced_class_names, targets[0]["labels"].tolist()
-        )
-        final_target = vis_utils.prepare_masks_and_boxes(
-            num_classes=num_classes,
-            image=test_image,
-            masks=targets[0]["masks"],
-            boxes=targets[0]["boxes"],
-            labels=target_labels,
-            colors=target_colors,
-        )
-        vis_utils.show(
-            "test",
-            final_target + final_target,
-            idx,
-            pred_box_count=len(targets[0]["boxes"]),
-            target_box_count=len(targets[0]["boxes"]),
-        )
+        combined_mask = np.zeros((1024, 1024), dtype=np.uint8)
+        for i, (mask, label) in enumerate(
+            zip(targets[0]["masks"].numpy(), targets[0]["labels"].numpy())
+        ):
+            combined_mask[mask > 0] = label
+
+        vis_utils.blend_image_masks(test_image, combined_mask, f"test/{idx}.png")
+
+        # target_labels, target_colors = vis_utils.create_labels_and_colors(
+        #     reduced_class_names, targets[0]["labels"].tolist()
+        # )
+
+        # final_target = vis_utils.prepare_masks_and_boxes(
+        #     num_classes=num_classes,
+        #     image=test_image,
+        #     masks=targets[0]["masks"],
+        #     boxes=targets[0]["boxes"],
+        #     labels=target_labels,
+        #     colors=target_colors,
+        # )
+        # vis_utils.show(
+        #     "test",
+        #     final_target + final_target,
+        #     idx,
+        #     pred_box_count=len(targets[0]["boxes"]),
+        #     target_box_count=len(targets[0]["boxes"]),
+        # )
+
+    exit()
 
 
 if __name__ == "__main__":
@@ -137,7 +148,7 @@ if __name__ == "__main__":
         train_images_root, val_images_root, batch_size, resize=True
     )
 
-    visualize_data(train_loader, num_classes)
+    # visualize_data(train_loader, num_classes)  ## comment
 
     # load an instance segmentation model pre-trained pre-trained on COCO
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(

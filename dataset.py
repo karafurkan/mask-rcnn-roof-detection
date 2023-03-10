@@ -4,14 +4,97 @@ import torch
 from PIL import Image
 import cv2
 
-reduced_classes = [
+reduced_classes_3 = [
     "Background",  # 0
     "Flat",  # 1
     "Gable",  # 2
 ]
 
-reduced_class_names = {i: class_name for i, class_name in enumerate(reduced_classes)}
-class_numbers = [i for i in range(1, len(reduced_classes))]
+reduced_classes_10 = [
+    "Background",  # 0
+    "Flat",  # 1
+    "East_Tilt",  # 2
+    "North_Tilt",  # 3
+    "Northeast_Tilt",  # 4
+    "Northwest_Tilt",  # 5
+    "South_Tilt",  # 6
+    "Southeast_Tilt",  # 7
+    "Southwest_Tilt",  # 8
+    "West_Tilt",  # 9
+]
+
+reduced_class_names = {i: class_name for i, class_name in enumerate(reduced_classes_10)}
+class_numbers = [i for i in range(1, len(reduced_classes_10))]
+
+
+def reduce_number_of_classes_to_3(mask):
+    height, width = mask.shape[:2]
+    new_mask = np.zeros((height, width, 1), dtype=np.uint8)
+    new_mask[np.where(mask == 0)] = 0
+
+    new_mask[np.where(mask == 1)] = 2
+    new_mask[np.where(mask == 2)] = 2
+
+    new_mask[np.where(mask == 4)] = 2
+    new_mask[np.where(mask == 5)] = 2
+
+    new_mask[np.where(mask == 6)] = 2
+    new_mask[np.where(mask == 7)] = 2
+
+    new_mask[np.where(mask == 8)] = 2
+    new_mask[np.where(mask == 9)] = 2
+
+    new_mask[np.where(mask == 10)] = 2
+    new_mask[np.where(mask == 11)] = 2
+
+    new_mask[np.where(mask == 12)] = 2
+    new_mask[np.where(mask == 13)] = 2
+
+    new_mask[np.where(mask == 14)] = 2
+    new_mask[np.where(mask == 15)] = 2
+
+    new_mask[np.where(mask == 16)] = 2
+    new_mask[np.where(mask == 17)] = 2
+
+    # Convert Flat to 1
+    new_mask[np.where(mask == 3)] = 1
+
+    return new_mask
+
+
+def reduce_number_of_classes_to_10(mask):
+    height, width = mask.shape[:2]
+    new_mask = np.zeros((height, width, 1), dtype=np.uint8)
+    new_mask[np.where(mask == 0)] = 0
+
+    new_mask[np.where(mask == 1)] = 2
+    new_mask[np.where(mask == 2)] = 2
+
+    new_mask[np.where(mask == 4)] = 3
+    new_mask[np.where(mask == 5)] = 3
+
+    new_mask[np.where(mask == 6)] = 4
+    new_mask[np.where(mask == 7)] = 4
+
+    new_mask[np.where(mask == 8)] = 5
+    new_mask[np.where(mask == 9)] = 5
+
+    new_mask[np.where(mask == 10)] = 6
+    new_mask[np.where(mask == 11)] = 6
+
+    new_mask[np.where(mask == 12)] = 7
+    new_mask[np.where(mask == 13)] = 7
+
+    new_mask[np.where(mask == 14)] = 8
+    new_mask[np.where(mask == 15)] = 8
+
+    new_mask[np.where(mask == 16)] = 9
+    new_mask[np.where(mask == 17)] = 9
+
+    # Convert Flat to 1
+    new_mask[np.where(mask == 3)] = 1
+
+    return new_mask
 
 
 def find_threshold(mask, id):
@@ -86,15 +169,18 @@ class ImageDataset(torch.utils.data.Dataset):
         img = Image.open(img_path).convert("RGB")
         mask = Image.open(mask_path).convert("L")
 
+        # cv2.imwrite(f"image window{img_path}", np.array(img))
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
         # if self.resize:
         #     img = img.resize((256, 256))
         #     mask = mask.resize((256, 256))
 
         mask = np.array(mask)
-
+        mask = reduce_number_of_classes_to_10(mask).squeeze(2)
         # Uncomment to visualize the mask
         # _mask = np.expand_dims(mask, 2)
-        # cv2.imshow("image window", _mask * 40)
+        # cv2.imwrite(f"mask_{mask_path}", _mask * 40)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
