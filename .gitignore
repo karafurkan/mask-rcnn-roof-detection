@@ -1,17 +1,17 @@
 # Model
-checkpoints/*
+project/checkpoints/*
 
 .DS_Store
 
 # Dataset
-dataset
+project/dataset/*
 # Result images
-results/*
-results_to_share/*
-test/*
+project/results/*
+project/results_to_share/*
+project/test_im/*
 # pkl files
-pkl_files/*
-test_pkl_files/*
+project/pkl_files/*
+project/test_pkl_files/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

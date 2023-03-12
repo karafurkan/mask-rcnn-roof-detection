@@ -47,7 +47,7 @@ def load_tfrecords_dataset(dataset_path: str):
 
 def get_good_indices(csv_path: str):
     df = pd.read_csv(csv_path)
-    return df.loc[df["Category"] == "good"].index.tolist()
+    return df.loc[df["category"] == "good"].index.tolist()
 
 
 def convert_tf_records_to_png_images(dataset: tf.data.Dataset, good_img_indices: list):

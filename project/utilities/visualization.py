@@ -3,9 +3,13 @@ import torchvision
 import torchvision.transforms.functional as F
 from torchvision.utils import draw_bounding_boxes
 from torchvision.utils import draw_segmentation_masks
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.patches as patches
 import numpy as np
+from PIL import Image
+import matplotlib.colors as colors
 
 
 def show(folder, imgs, index, pred_box_count=0, target_box_count=0):
@@ -86,37 +90,62 @@ def create_labels_and_colors(class_names, labels):
     return labels, colors
 
 
-def blend_image_masks(image: np.array, mask: np.array, savepath: str):
+def blend_image_masks(
+    image: np.array, pred_mask: np.array, target_mask: np.array, savepath: str
+):
+    image = (image.float() * 255).to(torch.uint8)
     image = np.moveaxis(image.numpy(), 0, -1)
+    gray_image = image.copy()
+    gray_image = Image.fromarray(gray_image).convert("L")
+    gray_image = np.array(gray_image)
+    pred_mask = pred_mask.astype(np.float32)
+    pred_mask[pred_mask == 0] = np.nan
+
+    target_mask = target_mask.astype(np.float32)
+    target_mask[target_mask == 0] = np.nan
+
     labels = {
         0: "Background",
         1: "Flat",
-        2: "North",
-        3: "Northeast",
-        4: "East",
-        5: "Southeast",
-        6: "South",
-        7: "Southwest",
-        8: "West",
-        9: "Northwest",
+        2: "Gable",
+        # 2: "East_Tilt",
+        # 3: "North_Tilt",
+        # 4: "Northeast_Tilt",
+        # 5: "Northwest_Tilt",
+        # 6: "South_Tilt",
+        # 7: "Southeast_Tilt",
+        # 8: "Southwest_Tilt",
+        # 9: "West_Tilt",
     }
-    fig, ax = plt.subplots(1, 3, figsize=(19, 6))
-    for i in range(0, 10):
-        mask[i, 0] = i
-    ax[0].imshow(image)
-    ax[1].imshow(image, cmap="gray")
-    ax[1].imshow(mask, alpha=0.4, cmap="jet")
-    im = ax[2].imshow(mask)
+    fig, ax = plt.subplots(2, 3, figsize=(19, 6))
+    # First row
+
+    # for i in range(0, 10):
+    #     pred_mask[i, 0] = i
+    ax[0, 0].imshow(image)
+    ax[0, 1].imshow(gray_image, cmap="gray")
+    ax[0, 1].imshow(pred_mask, alpha=0.5, cmap="viridis")
+    # im = ax[0, 2].imshow(pred_mask)
+    im = ax[0, 2].imshow(pred_mask)
+
+    # Second row
+    ax[1, 0].imshow(image)
+    ax[1, 1].imshow(gray_image, cmap="gray")
+    ax[1, 1].imshow(target_mask, alpha=0.5, cmap="viridis")
+    im = ax[1, 2].imshow(target_mask)
     for axes in ax:
-        axes.set_axis_off()
-        axes.get_xaxis().set_visible(False)
-        axes.get_yaxis().set_visible(False)
-        axes.set_xticklabels([])
-        axes.set_yticklabels([])
+        for i in range(0, 3):
+            axes[i].set_axis_off()
+            axes[i].get_xaxis().set_visible(False)
+            axes[i].get_yaxis().set_visible(False)
+            axes[i].set_xticklabels([])
+            axes[i].set_yticklabels([])
     plt.subplots_adjust(wspace=0, hspace=0)
     # get the colors of the values, according to the
     # colormap used by imshow
-    colors = [im.cmap(im.norm(label)) for label in labels]
+
+    colors = [im.cmap(im.norm(label * 2)) for label in labels]
+
     # create a patch (proxy artist) for every color
     patches = [
         mpatches.Patch(color=colors[i], label=labels[i]) for i in range(len(labels))
@@ -124,11 +153,12 @@ def blend_image_masks(image: np.array, mask: np.array, savepath: str):
     # put those patched as legend-handles into the legend
     plt.legend(
         handles=patches,
+        prop={"size": 8},
         bbox_to_anchor=(1.05, 1),
         loc=2,
         borderaxespad=0.0,
-        prop={"size": 6},
     )
+
     plt.savefig(savepath, bbox_inches="tight")
     plt.close()
 
