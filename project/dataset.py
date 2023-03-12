@@ -23,8 +23,8 @@ reduced_classes_10 = [
     "West_Tilt",  # 9
 ]
 
-reduced_class_names = {i: class_name for i, class_name in enumerate(reduced_classes_10)}
-class_numbers = [i for i in range(1, len(reduced_classes_10))]
+reduced_class_names = {i: class_name for i, class_name in enumerate(reduced_classes_3)}
+class_numbers = [i for i in range(1, len(reduced_classes_3))]
 
 
 def reduce_number_of_classes_to_3(mask):
@@ -177,7 +177,7 @@ class ImageDataset(torch.utils.data.Dataset):
         #     mask = mask.resize((256, 256))
 
         mask = np.array(mask)
-        mask = reduce_number_of_classes_to_10(mask).squeeze(2)
+        mask = reduce_number_of_classes_to_3(mask).squeeze(2)
         # Uncomment to visualize the mask
         # _mask = np.expand_dims(mask, 2)
         # cv2.imwrite(f"mask_{mask_path}", _mask * 40)

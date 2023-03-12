@@ -3,11 +3,11 @@ import torchvision
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-from dataset import ImageDataset
+from project.dataset import ImageDataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import random as rng
-from utilities.metrics import *
+from project.utilities.metrics import *
 
 rng.seed(12345)
 

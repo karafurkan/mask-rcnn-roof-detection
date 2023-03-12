@@ -2,8 +2,8 @@ import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 import torch
-import utilities.utils as utils
-import utilities.visualization as vis_utils
+import project.utilities.utils as utils
+import project.utilities.visualization as vis_utils
 import numpy as np
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -85,16 +85,16 @@ def predict(model, loader, num_classes, score_threshold=0.75):
                 test_image,
                 combined_pred_mask,
                 combined_target_mask,
-                f"results/{image_idx}.png",
+                f"project/results/{image_idx}.png",
             )
 
 
 if __name__ == "__main__":
     num_classes = 3
     hidden_layer = 512
-    cp_path = f"checkpoints/hl_{hidden_layer}/cp_49.pth.tar"
+    cp_path = f"project/checkpoints/hl_{hidden_layer}/cp_49.pth.tar"
 
-    test_images_root = "dataset/test/"
+    test_images_root = "project/dataset/test/"
     _, test_loader = utils.get_loaders(
         None, test_images_root, num_workers=0, batch_size=1, resize=False
     )

@@ -5,10 +5,10 @@ from torchvision.models.detection import MaskRCNN_ResNet50_FPN_Weights
 import torch
 import numpy as np
 from tqdm import tqdm
-import utilities.utils as utils
-import utilities.metrics as metric_utils
+import project.utilities.utils as utils
+import project.utilities.metrics as metric_utils
 import torchvision.transforms.functional as F
-import utilities.visualization as vis_utils
+import project.utilities.visualization as vis_utils
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 HIDDEN_LAYER = 512
@@ -106,15 +106,15 @@ def visualize_data(train_loader):
         ):
             combined_mask[mask > 0] = label
 
-        vis_utils.blend_image_masks(test_image, combined_mask, f"test/{idx}.png")
+        vis_utils.blend_image_masks(test_image, combined_mask, f"test_im/{idx}.png")
 
     exit()
 
 
 if __name__ == "__main__":
 
-    train_images_root = "dataset/train"
-    val_images_root = "dataset/val"
+    train_images_root = "project/dataset/train"
+    val_images_root = "project/dataset/val"
     batch_size = 2
     num_classes = 3
 
