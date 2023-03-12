@@ -27,16 +27,16 @@ def train(model, train_loader, val_loader, optimizer, n_epochs=10):
     # dice_score_list = []
     # miou_list = []
     # pred_scores_list = []
-    # f1_scores_list = []
+    f1_scores_list = []
 
     # # Validate model before training
-    # miou_scores, pred_scores, f1_scores = utils.validate_model(
-    #     val_loader, model, device=device
-    # )
+    miou_scores, pred_scores, f1_scores = utils.validate_model(
+        val_loader, model, device=device
+    )
     # miou_list.append(miou_scores)
     # pred_scores_list.append(pred_scores)
-    # f1_scores_list.append(f1_scores)
-
+    f1_scores_list.append(f1_scores)
+    print("F1 scores: ", f1_scores)
     # Star training loop
     for epoch in tqdm(range(n_epochs)):
         loss_epoch = []
@@ -63,13 +63,14 @@ def train(model, train_loader, val_loader, optimizer, n_epochs=10):
         # loss_epoch_mean_list.append(loss_epoch_mean)
         print("Average loss for epoch = {:.4f} ".format(loss_epoch_mean))
 
-        # miou_scores, pred_scores, f1_scores = utils.validate_model(
-        #     val_loader, model, device=device
-        # )
+        miou_scores, pred_scores, f1_scores = utils.validate_model(
+            val_loader, model, device=device
+        )
 
         # miou_list.append(miou_scores)
         # pred_scores_list.append(pred_scores)
-        # f1_scores_list.append(f1_scores)
+        f1_scores_list.append(f1_scores)
+        print("F1 scores: ", f1_scores)
         # Save model
         utils.save_checkpoint(
             model.state_dict(), f"hl_{HIDDEN_LAYER}/cp_{epoch}.pth.tar"

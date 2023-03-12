@@ -69,7 +69,7 @@ def get_loaders(
 
     val_loader = DataLoader(
         dataset_val,
-        batch_size=1,
+        batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
         pin_memory=pin_memory,
@@ -103,7 +103,14 @@ def get_test_loader(
     return test_loader
 
 
-def validate_model(loader, model, device="cuda"):
+def combine_instance_masks(masks_list, labels_list):
+    combined_mask = np.zeros(masks_list[0].shape, dtype=np.uint8)
+    for mask, label in zip(masks_list, labels_list):
+        combined_mask[mask > 0.5] = label
+    return combined_mask
+
+
+def validate_model(loader, model, device="cuda", num_classes=3):
     """Calculate the accuracy of the model.
 
     Args:
@@ -112,12 +119,9 @@ def validate_model(loader, model, device="cuda"):
         device (str, optional): GPU or CPU. Defaults to "cuda".
     """
     print("Validating model...")
-    threshold = 0.5
-    accuracy_scores = 0
-    dice_scores = 0
-    miou_scores = 0
-    f1_scores = 0
-    pred_scores = 0
+    threshold = 0.5  # TODO: Change threshold maybe: 0.75
+    sum_f1_scores = 0
+
     torch.cuda.empty_cache()
     model.to(device)
     model.eval()
@@ -127,42 +131,50 @@ def validate_model(loader, model, device="cuda"):
             # Move images and target to device (cpu or cuda)
             images = list(image.to(device).double() for image in images)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-            pred = model(images)[0]
-            scores = pred["scores"]
 
-            pred_scores += scores.mean()
-            # Get predictions above threshold
-            indexes = (scores > threshold).nonzero().squeeze()
-            pred_masks = pred["masks"][indexes]
-            target_masks = targets[0]["masks"]
+            # Perform inference
+            pred = model(images)
 
-            # accuracy_scores += mean_accuracy(
-            #     pred_masks=pred_masks, target_masks=target_masks
-            # )
-            miou_scores += compute_miou(
-                pred_masks=pred_masks, target_masks=target_masks, n_classes=2
+            # Collect predicted and ground truth masks and labels for each image in the batch
+            combined_preds = []
+            combined_targes = []
+
+            for i in range(len(images)):
+                # Get predicted masks, labels, and scores for the image
+                pred_masks = pred[i]["masks"].detach().cpu().numpy().squeeze(1)
+                pred_labels = pred[i]["labels"].detach().cpu().numpy()
+                pred_scores = pred[i]["scores"].detach().cpu().numpy()
+
+                # Keep only masks and labels with score above threshold
+                indexes = np.nonzero(pred_scores > threshold)[0]
+                pred_masks = pred_masks[indexes]
+                pred_labels = pred_labels[indexes]
+
+                # Combine masks in prediction into a single mask
+                pred_mask = combine_instance_masks(pred_masks, pred_labels)
+                combined_preds.append(pred_mask)
+
+                # Get ground truth masks and labels for the image
+                target_masks = targets[i]["masks"].detach().cpu().numpy()
+                target_labels = targets[i]["labels"].detach().cpu().numpy()
+
+                # Combine masks in target into a single mask
+                target_mask = combine_instance_masks(target_masks, target_labels)
+                combined_targes.append(target_mask)
+
+            pred_mask = np.stack(combined_preds, axis=0)
+            target_mask = np.stack(combined_targes, axis=0)
+
+            # Calculate F1 score for each class
+            f1_scores = f1_score_per_class(
+                outputs=pred_mask, targets=target_mask, num_classes=num_classes
             )
-            f1_scores += compute_f1_score(
-                pred_masks=pred_masks, target_masks=target_masks, n_classes=2
-            )
-            # dice_scores += mean_dice_score(
-            #     pred_masks=pred_masks, target_masks=target_masks
-            # )
-
-    # accuracy_score = accuracy_scores / len(loader)
-    # dice_score = dice_scores / len(loader)
-    miou_score = miou_scores / len(loader)
-    pred_score = (pred_scores / len(loader)).detach().cpu().numpy()
-    f1_score = (f1_scores / len(loader)).detach().cpu().numpy()
-
-    # print(f"Accuracy score: {accuracy_score}")
-    # print(f"Dice score: {dice_score}")
-    print(f"mIoU score: {miou_score}")
-    print(f"F1 score: {f1_score}")
-    print(f"Pred score: {pred_score}")
+            sum_f1_scores = np.add(sum_f1_scores, f1_scores)
 
     model.train()
-    torch.cuda.empty_cache()
+    miou_score = 0
+    pred_score = 0
+    f1_score = sum_f1_scores / len(loader)
     return miou_score, pred_score, f1_score
 
 
