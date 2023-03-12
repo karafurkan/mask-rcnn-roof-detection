@@ -11,7 +11,7 @@ import torchvision.transforms.functional as F
 import utilities.visualization as vis_utils
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-HIDDEN_LAYER = 256
+HIDDEN_LAYER = 512
 
 
 def train(model, train_loader, val_loader, optimizer, n_epochs=10):
@@ -88,15 +88,9 @@ def train(model, train_loader, val_loader, optimizer, n_epochs=10):
     # )
 
 
-def visualize_data(train_loader, num_classes):
-    # Visualize data
-    reduced_classes = ["Background", "Flat", "Gable"]  # 0  # 1 # 3
-    reduced_class_names = {
-        i: class_name for i, class_name in enumerate(reduced_classes)
-    }
-
+def visualize_data(train_loader):
     for idx, (images, targets) in enumerate(train_loader):
-        if idx == 10:
+        if idx == 20:
             break
 
         test_image = images[0].double()
@@ -114,26 +108,6 @@ def visualize_data(train_loader, num_classes):
 
         vis_utils.blend_image_masks(test_image, combined_mask, f"test/{idx}.png")
 
-        # target_labels, target_colors = vis_utils.create_labels_and_colors(
-        #     reduced_class_names, targets[0]["labels"].tolist()
-        # )
-
-        # final_target = vis_utils.prepare_masks_and_boxes(
-        #     num_classes=num_classes,
-        #     image=test_image,
-        #     masks=targets[0]["masks"],
-        #     boxes=targets[0]["boxes"],
-        #     labels=target_labels,
-        #     colors=target_colors,
-        # )
-        # vis_utils.show(
-        #     "test",
-        #     final_target + final_target,
-        #     idx,
-        #     pred_box_count=len(targets[0]["boxes"]),
-        #     target_box_count=len(targets[0]["boxes"]),
-        # )
-
     exit()
 
 
@@ -141,14 +115,14 @@ if __name__ == "__main__":
 
     train_images_root = "dataset/train"
     val_images_root = "dataset/val"
-    batch_size = 1
+    batch_size = 2
     num_classes = 3
 
     train_loader, val_loader = utils.get_loaders(
         train_images_root, val_images_root, batch_size, resize=True
     )
 
-    # visualize_data(train_loader, num_classes)  ## comment
+    # visualize_data(train_loader)
 
     # load an instance segmentation model pre-trained pre-trained on COCO
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(
@@ -162,10 +136,10 @@ if __name__ == "__main__":
 
     # now get the number of input features for the mask classifier
     in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
-    hidden_layer = HIDDEN_LAYER
+
     # and replace the mask predictor with a new one
     model.roi_heads.mask_predictor = MaskRCNNPredictor(
-        in_features_mask, hidden_layer, num_classes
+        in_features_mask, HIDDEN_LAYER, num_classes
     )
 
     model = model.to(device)
@@ -180,5 +154,5 @@ if __name__ == "__main__":
         train_loader=train_loader,
         val_loader=val_loader,
         optimizer=optimizer,
-        n_epochs=15,
+        n_epochs=50,
     )

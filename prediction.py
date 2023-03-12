@@ -4,7 +4,6 @@ from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 import torch
 import utilities.utils as utils
 import utilities.visualization as vis_utils
-import cv2
 import numpy as np
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -14,11 +13,22 @@ reduced_class_names = {i: class_name for i, class_name in enumerate(reduced_clas
 
 
 def load_model(num_classes, hidden_layer, cp_path):
-    model = torchvision.models.detection.maskrcnn_resnet50_fpn()
+    """Load the model from the checkpoint
 
+    Args:
+        num_classes (_type_): number of classes in the dataset
+        hidden_layer (_type_): number of hidden layers in the model
+        cp_path (_type_): path to the checkpoint
+
+    Returns:
+        _type_: PyTorch model
+    """
+    model = torchvision.models.detection.maskrcnn_resnet50_fpn()
     in_features = model.roi_heads.box_predictor.cls_score.in_features
+    # Replace the pre-trained head with a new one with the number of classes
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
+    # Replace the pre-trained head with a new one with the number of classes
     model.roi_heads.mask_predictor = MaskRCNNPredictor(
         in_features_mask, hidden_layer, num_classes
     )
@@ -37,66 +47,52 @@ def predict(model, loader, num_classes, score_threshold=0.75):
         test_image = test_image.to(device=DEVICE)
 
         with torch.no_grad():
-            pred = model([test_image])
+            _pred = model([test_image])
 
-            scores = pred[0]["scores"]
+            scores = _pred[0]["scores"]
             indexes = (scores > score_threshold).nonzero().squeeze()
 
             # Get the data which has bigger score value than the threshold
-            accepted_pred = dict()
-            accepted_pred["boxes"] = pred[0]["boxes"][indexes]
-            accepted_pred["masks"] = pred[0]["masks"][indexes]
+            pred = dict()
+            pred["boxes"] = _pred[0]["boxes"][indexes]
+            pred["masks"] = _pred[0]["masks"][indexes]
+            labels = _pred[0]["labels"][indexes]
 
             # If no boxes found, skip the rendering boxes and mask process
-            if len(accepted_pred["boxes"]) == 0:
+            if len(pred["boxes"]) == 0:
+                print(f"Skipping image: {image_idx}")
                 continue
-                vis_utils.show([test_image, test_image, test_image], image_idx)
 
-            test_image = test_image.float()
-            test_image = test_image * 255
-            test_image = test_image.to(torch.uint8)
+            # If the indexes is a scalar, unsqueeze the result tensors
+            if indexes.shape == torch.Size([]):
+                pred["boxes"] = pred["boxes"].unsqueeze(0)
+                pred["masks"] = pred["masks"].unsqueeze(0)
+                labels = labels.unsqueeze(0)
 
-            # Create labels from indexes
-            _labels = pred[0]["labels"][indexes].tolist()
+            masks = pred["masks"].numpy().squeeze(1)
 
-            pred_labels, pred_colors = vis_utils.create_labels_and_colors(
-                reduced_class_names, _labels
-            )
-            final_pred = vis_utils.prepare_masks_and_boxes(
-                num_classes=num_classes,
-                image=test_image,
-                masks=accepted_pred["masks"],
-                boxes=accepted_pred["boxes"],
-                labels=pred_labels,
-                colors=pred_colors,
-            )
+            # Combine the pred masks into one mask for visualization
+            combined_pred_mask = np.zeros(masks[0].shape, dtype=np.uint8)
+            for i, (mask, label) in enumerate(zip(masks, labels)):
+                combined_pred_mask[mask > 0.5] = label
 
-            target_labels, target_colors = vis_utils.create_labels_and_colors(
-                reduced_class_names, target["labels"].tolist()
-            )
-            final_target = vis_utils.prepare_masks_and_boxes(
-                num_classes=num_classes,
-                image=test_image,
-                masks=target["masks"],
-                boxes=target["boxes"],
-                labels=target_labels,
-                colors=target_colors,
-            )
+            # Combine the target masks into one mask for visualization
+            combined_target_mask = np.zeros(target["masks"][0].shape, dtype=np.uint8)
+            for i, (mask, label) in enumerate(zip(target["masks"], labels)):
+                combined_target_mask[mask > 0.5] = label
 
-            result = final_pred + final_target
-            vis_utils.show(
-                "results",
-                result,
-                image_idx,
-                pred_box_count=len(accepted_pred["boxes"]),
-                target_box_count=len(target["boxes"]),
+            vis_utils.blend_image_masks(
+                test_image,
+                combined_pred_mask,
+                combined_target_mask,
+                f"results/{image_idx}.png",
             )
 
 
 if __name__ == "__main__":
     num_classes = 3
-    hidden_layer = 256
-    cp_path = "checkpoints/hl_256/cleaned_cp_14.pth.tar"
+    hidden_layer = 512
+    cp_path = f"checkpoints/hl_{hidden_layer}/cp_49.pth.tar"
 
     test_images_root = "dataset/test/"
     _, test_loader = utils.get_loaders(
