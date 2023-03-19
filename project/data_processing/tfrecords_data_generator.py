@@ -36,6 +36,26 @@ def parse_tfr_elem(element):
     mask = tf.cast(mask, tf.int32)
     mask_arr = tf.reshape(mask, shape=[height, width, depth_mask])
 
+    mask_new = tf.zeros((1024, 1024, 1), tf.int32)
+    mask_new = tf.where([mask_arr == 3], 1, mask_new)
+    mask_new = tf.where([mask_arr == 4], 2, mask_new)
+    mask_new = tf.where([mask_arr == 5], 2, mask_new)
+    mask_new = tf.where([mask_arr == 6], 3, mask_new)
+    mask_new = tf.where([mask_arr == 7], 3, mask_new)
+    mask_new = tf.where([mask_arr == 1], 4, mask_new)
+    mask_new = tf.where([mask_arr == 2], 4, mask_new)
+    mask_new = tf.where([mask_arr == 12], 5, mask_new)
+    mask_new = tf.where([mask_arr == 13], 5, mask_new)
+    mask_new = tf.where([mask_arr == 10], 6, mask_new)
+    mask_new = tf.where([mask_arr == 11], 6, mask_new)
+    mask_new = tf.where([mask_arr == 14], 7, mask_new)
+    mask_new = tf.where([mask_arr == 15], 7, mask_new)
+    mask_new = tf.where([mask_arr == 16], 8, mask_new)
+    mask_new = tf.where([mask_arr == 17], 8, mask_new)
+    mask_new = tf.where([mask_arr == 8], 9, mask_new)
+    mask_new = tf.where([mask_arr == 9], 9, mask_new)
+    mask_arr = mask_new[0]
+
     return (img_arr, mask_arr)
 
 
@@ -47,16 +67,17 @@ def load_tfrecords_dataset(dataset_path: str):
 
 def get_good_indices(csv_path: str):
     df = pd.read_csv(csv_path)
-    return df.loc[df["category"] == "good"].index.tolist()
+    return df.loc[df["category"] == "good"].iloc[:, 0].tolist()
 
 
 def convert_tf_records_to_png_images(dataset: tf.data.Dataset, good_img_indices: list):
     img_count = 0
+    path = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/project/dataset-pranet/train"
     for idx, (image, mask) in enumerate(tqdm(dataset.as_numpy_iterator())):
         if idx in good_img_indices:
             image = (image * 255).astype(np.uint8)
-            cv2.imwrite(f"cleaned_data/images/image_{idx}.png", image)
-            cv2.imwrite(f"cleaned_data/masks/image_{idx}.png", mask)
+            cv2.imwrite(f"{path}/images/image_{idx}.png", image)
+            cv2.imwrite(f"{path}/masks/image_{idx}.png", mask)
             img_count += 1
 
         # End streaming if all good images are processed

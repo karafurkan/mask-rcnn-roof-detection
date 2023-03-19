@@ -4,7 +4,8 @@ project/checkpoints/*
 .DS_Store
 
 # Dataset
-project/dataset/*
+
+project/dataset*
 # Result images
 project/results/*
 project/results_to_share/*
@@ -12,6 +13,10 @@ project/test_im/*
 # pkl files
 project/pkl_files/*
 project/test_pkl_files/*
+
+# image folder
+imgs_visualized_before_training/*
+results*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

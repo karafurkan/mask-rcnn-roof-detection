@@ -23,8 +23,8 @@ reduced_classes_10 = [
     "West_Tilt",  # 9
 ]
 
-reduced_class_names = {i: class_name for i, class_name in enumerate(reduced_classes_3)}
-class_numbers = [i for i in range(1, len(reduced_classes_3))]
+reduced_class_names = {i: class_name for i, class_name in enumerate(reduced_classes_10)}
+class_numbers = [i for i in range(1, len(reduced_classes_10))]
 
 
 def reduce_number_of_classes_to_3(mask):
@@ -152,10 +152,11 @@ def extract_data_from_mask(mask_image):
 
 
 class ImageDataset(torch.utils.data.Dataset):
-    def __init__(self, root, transforms, resize=True):
+    def __init__(self, root, resize, img_transforms, mask_transforms):
         self.root = root
-        self.transforms = transforms
         self.resize = resize
+        self.img_transforms = img_transforms
+        self.mask_transforms = mask_transforms
         # load all image files, sorting them to
         # ensure that they are aligned
         self.imgs = list(sorted(os.listdir(os.path.join(root, "images"))))
@@ -172,12 +173,28 @@ class ImageDataset(torch.utils.data.Dataset):
         # cv2.imwrite(f"image window{img_path}", np.array(img))
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
-        # if self.resize:
-        #     img = img.resize((256, 256))
-        #     mask = mask.resize((256, 256))
 
-        mask = np.array(mask)
-        mask = reduce_number_of_classes_to_3(mask).squeeze(2)
+        if self.img_transforms is not None:
+            img = self.img_transforms(img)
+
+        if self.mask_transforms is not None:
+            mask = cv2.resize(np.array(mask), (512, 512))
+        else:
+            mask = np.array(mask)
+
+        # img = np.array(img)
+        # mask = np.array(mask)
+        # if self.resize is not None:
+        #     img = cv2.resize(img, self.resize, interpolation=cv2.INTER_AREA)
+        #     mask = cv2.resize(mask, self.resize)
+
+        # img = torch.from_numpy(img).permute(2, 0, 1)
+
+        # We want masks shape to be (height, width)
+        if mask.shape[0] == 1:
+            mask = np.squeeze(mask, 0)
+
+        # mask = reduce_number_of_classes_to_10(mask).squeeze(2)
         # Uncomment to visualize the mask
         # _mask = np.expand_dims(mask, 2)
         # cv2.imwrite(f"mask_{mask_path}", _mask * 40)
@@ -199,9 +216,6 @@ class ImageDataset(torch.utils.data.Dataset):
         target["labels"] = labels
         target["masks"] = masks
         target["image_id"] = image_id
-
-        if self.transforms is not None:
-            img = self.transforms(img)
 
         return img, target
 

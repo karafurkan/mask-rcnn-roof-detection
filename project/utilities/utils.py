@@ -7,6 +7,8 @@ from project.dataset import ImageDataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import random as rng
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 from project.utilities.metrics import *
 
 rng.seed(12345)
@@ -14,7 +16,7 @@ rng.seed(12345)
 
 def save_checkpoint(state, filename="my_checkpoint.pth.tar"):
     print("=> Saving checkpoint")
-    cp_filename = "checkpoints/" + filename
+    cp_filename = "project/checkpoints/" + filename
     torch.save(state, cp_filename)
 
 
@@ -23,13 +25,43 @@ def load_checkpoint(checkpoint, model):
     model.load_state_dict(checkpoint["state_dict"])
 
 
+def load_model(num_classes, hidden_layer, device, cp_path):
+    """Load the model from the checkpoint
+
+    Args:
+        num_classes (_type_): number of classes in the dataset
+        hidden_layer (_type_): number of hidden layers in the model
+        cp_path (_type_): path to the checkpoint
+
+    Returns:
+        _type_: PyTorch model
+    """
+    model = torchvision.models.detection.maskrcnn_resnet50_fpn()
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    # Replace the pre-trained head with a new one with the number of classes
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+    in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
+    # Replace the pre-trained head with a new one with the number of classes
+    model.roi_heads.mask_predictor = MaskRCNNPredictor(
+        in_features_mask, hidden_layer, num_classes
+    )
+    model = model.to(device)
+    model = model.double()
+    model.load_state_dict(torch.load(cp_path, map_location=device))
+    model.eval()
+
+    return model
+
+
 def get_loaders(
     train_images_root=None,
     val_images_root=None,
     batch_size=2,
     num_workers=2,
     pin_memory=True,
-    resize=True,
+    resize=(512, 512),
+    img_transforms=torchvision.transforms.ToTensor(),
+    mask_transforms=torchvision.transforms.ToTensor(),
 ):
     """Get the train and validation data loaders.
 
@@ -50,8 +82,9 @@ def get_loaders(
     if train_images_root is not None:
         dataset_train = ImageDataset(
             train_images_root,
-            transforms=torchvision.transforms.ToTensor(),
             resize=resize,
+            img_transforms=img_transforms,
+            mask_transforms=mask_transforms,
         )
         train_loader = DataLoader(
             dataset_train,
@@ -64,7 +97,10 @@ def get_loaders(
     else:
         train_loader = None
     dataset_val = ImageDataset(
-        val_images_root, transforms=torchvision.transforms.ToTensor(), resize=resize
+        val_images_root,
+        resize=resize,
+        img_transforms=img_transforms,
+        mask_transforms=mask_transforms,
     )
 
     val_loader = DataLoader(
@@ -104,7 +140,7 @@ def get_test_loader(
 
 
 def combine_instance_masks(masks_list, labels_list):
-    combined_mask = np.zeros(masks_list[0].shape, dtype=np.uint8)
+    combined_mask = np.zeros(masks_list.shape[1:], dtype=np.uint8)
     for mask, label in zip(masks_list, labels_list):
         combined_mask[mask > 0.5] = label
     return combined_mask
