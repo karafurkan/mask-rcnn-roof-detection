@@ -28,6 +28,29 @@ def f1_score_per_class(outputs, targets, num_classes, avg_option="macro"):
     return f1_scores
 
 
+def iou(pred, target, n_classes=3):
+    ious = []
+    pred = pred.view(-1)
+    target = target.view(-1)
+
+    # Ignore IoU for background class ("0")
+    for cls in range(1, n_classes):
+        pred_inds = pred == cls
+        target_inds = target == cls
+        intersection = (
+            (pred_inds[target_inds]).long().sum().data.cpu().item()
+        )  # Cast to long to prevent overflows
+        union = (
+            pred_inds.long().sum().data.cpu().item()
+            + target_inds.long().sum().data.cpu().item()
+            - intersection
+        )
+        if union > 0:
+            ious.append(float(intersection) / float(max(union, 1)))
+
+    return np.array(ious)
+
+
 def save_metric_scores(
     loss_epoch_mean,
     iter_loss,

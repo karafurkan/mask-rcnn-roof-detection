@@ -15,29 +15,25 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 HIDDEN_LAYER = 256
 
 
-def train(model, train_loader, val_loader, optimizer, n_epochs=10):
+def train(model, train_loader, val_loader, optimizer, cp_epoch=0, n_epochs=10):
     # Perform training loop for n epochs
 
     model.train()
     model = model.double()
     scaler = torch.cuda.amp.GradScaler()
 
-    # running_loss_list = []
-    # loss_epoch_mean_list = []
-    # accuracy_list = []
-    # dice_score_list = []
-    # miou_list = []
-    # pred_scores_list = []
-    # f1_scores_list = []
+    miou_list = []
+    pred_scores_list = []
+    f1_scores_list = []
 
-    # # Validate model before training
-    # miou_scores, pred_scores, f1_scores = utils.validate_model(
-    #     val_loader, model, device=device
-    # )
-    # miou_list.append(miou_scores)
-    # pred_scores_list.append(pred_scores)
-    # f1_scores_list.append(f1_scores)
-    # print("F1 scores: ", f1_scores)
+    # Validate model before training
+    miou_scores, pred_scores, f1_scores = utils.validate_model(
+        val_loader, model, device=device
+    )
+    miou_list.append(miou_scores)
+    pred_scores_list.append(pred_scores)
+    f1_scores_list.append(f1_scores)
+    print("F1 scores: ", f1_scores)
     # Star training loop
     for epoch in tqdm(range(n_epochs)):
         loss_epoch = []
@@ -64,17 +60,17 @@ def train(model, train_loader, val_loader, optimizer, n_epochs=10):
         # loss_epoch_mean_list.append(loss_epoch_mean)
         print("Average loss for epoch = {:.4f} ".format(loss_epoch_mean))
 
-        # miou_scores, pred_scores, f1_scores = utils.validate_model(
-        #     val_loader, model, device=device
-        # )
+        miou_scores, pred_scores, f1_scores = utils.validate_model(
+            val_loader, model, device=device
+        )
 
-        # miou_list.append(miou_scores)
-        # pred_scores_list.append(pred_scores)
-        # f1_scores_list.append(f1_scores)
-        # print("F1 scores: ", f1_scores)
+        miou_list.append(miou_scores)
+        pred_scores_list.append(pred_scores)
+        f1_scores_list.append(f1_scores)
+        print("F1 scores: ", f1_scores)
         # Save model
         utils.save_checkpoint(
-            model.state_dict(), f"hl_{HIDDEN_LAYER}/cp_{epoch}.pth.tar"
+            model.state_dict(), f"hl_{HIDDEN_LAYER}/cp_{epoch+cp_epoch}.pth.tar"
         )
 
     # path = "validation_results/f1_score.npy"
@@ -99,6 +95,8 @@ if __name__ == "__main__":
     val_images_root = "project/dataset/val"
     batch_size = 2
     num_classes = 10
+    cp_epoch = 19
+
     image_transforms = transforms.Compose(
         [
             # transforms.Resize((512, 512)),
@@ -116,30 +114,33 @@ if __name__ == "__main__":
         mask_transforms=None,
     )
 
-    # load an instance segmentation model pre-trained pre-trained on COCO
-    model = torchvision.models.detection.maskrcnn_resnet50_fpn(
-        weights=MaskRCNN_ResNet50_FPN_Weights.DEFAULT
-    )
+    # Create the model from scratch if there is no checkpoint
+    if cp_epoch is None:
+        # load an instance segmentation model pre-trained pre-trained on COCO
+        model = torchvision.models.detection.maskrcnn_resnet50_fpn(
+            weights=MaskRCNN_ResNet50_FPN_Weights.DEFAULT
+        )
 
-    # get number of input features for the classifier
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    # replace the pre-trained head with a new one
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+        # get number of input features for the classifier
+        in_features = model.roi_heads.box_predictor.cls_score.in_features
+        # replace the pre-trained head with a new one
+        model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
-    # now get the number of input features for the mask classifier
-    in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
+        # now get the number of input features for the mask classifier
+        in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
 
-    # and replace the mask predictor with a new one
-    model.roi_heads.mask_predictor = MaskRCNNPredictor(
-        in_features_mask, HIDDEN_LAYER, num_classes
-    )
-
-    # model = utils.load_model(
-    #     num_classes=num_classes,
-    #     hidden_layer=HIDDEN_LAYER,
-    #     device=device,
-    #     cp_path=f"hl_{HIDDEN_LAYER}/cp_11.pth.tar",
-    # )
+        # and replace the mask predictor with a new one
+        model.roi_heads.mask_predictor = MaskRCNNPredictor(
+            in_features_mask, HIDDEN_LAYER, num_classes
+        )
+    else:
+        cp_path = f"project/checkpoints/hl_{HIDDEN_LAYER}/cp_{cp_epoch}.pth.tar"
+        model = utils.load_model(
+            num_classes=num_classes,
+            hidden_layer=HIDDEN_LAYER,
+            device=device,
+            cp_path=cp_path,
+        )
 
     model = model.to(device)
 
@@ -153,5 +154,6 @@ if __name__ == "__main__":
         train_loader=train_loader,
         val_loader=val_loader,
         optimizer=optimizer,
+        cp_epoch=19,
         n_epochs=20,
     )

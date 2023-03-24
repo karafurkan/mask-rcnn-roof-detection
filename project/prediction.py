@@ -70,7 +70,7 @@ def predict(model, loader, num_classes, score_threshold=0.75):
 if __name__ == "__main__":
     num_classes = 10
     hidden_layer = 256
-    cp_path = f"project/checkpoints/hl_{hidden_layer}/cp_33.pth.tar"
+    cp_path = f"project/checkpoints/hl_{hidden_layer}/cp_38.pth.tar"
 
     test_images_root = "project/dataset/test/"
     _, test_loader = utils.get_loaders(

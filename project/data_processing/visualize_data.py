@@ -148,9 +148,9 @@ if __name__ == "__main__":
         # mask_transforms=None,
     )
 
-    visualize_data_with_data_loader(train_loader, save_folder=save_path)
-    # visualize_from_image_folder(
-    #     "project/dataset-pranet/train/images",
-    #     "project/dataset-pranet/train/masks",
-    #     3000,
-    # )
+    # visualize_data_with_data_loader(train_loader, save_folder=save_path)
+    visualize_from_image_folder(
+        "project/dataset/train/images",
+        "project/dataset/train/masks",
+        3000,
+    )
