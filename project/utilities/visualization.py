@@ -12,6 +12,78 @@ import matplotlib.colors as mcolors
 import cv2
 
 
+def visualize_target_image_with_masks(image: np.array, mask: np.array, savepath: str):
+    image = (image.float() * 255).to(torch.uint8)
+    image = image.numpy()
+    image = np.moveaxis(image, 0, -1)
+    gray_image = image.copy()
+    gray_image = Image.fromarray(gray_image).convert("L")
+    gray_image = np.array(gray_image)
+
+    mask = mask.astype(np.float32)
+    # mask[mask == 0] = np.nan
+    labels = {
+        0: "Background",
+        1: "Flat",
+        2: "North",
+        3: "Northeast",
+        4: "East",
+        5: "Southeast",
+        6: "South",
+        7: "Southwest",
+        8: "West",
+        9: "Northwest",
+    }
+    fig, ax = plt.subplots(1, 3, figsize=(19, 6))
+    # add a pixel from each class to the mask (for consistent color mapping)
+    for i in range(len(labels)):
+        mask[i, 0] = i
+    # create colormap for mask
+    colors_all = plt.cm.viridis(np.linspace(0, 1, 256))
+    # get index of colors to use
+    colors_idx = np.linspace(0, 256, len(labels) - 1)
+    # insert 0 at the beginning
+    colors_idx = np.insert(colors_idx, 0, 0)
+    # set last color to 255
+    colors_idx[-1] = 255
+    # get colors with index
+    colors = colors_all[colors_idx.astype(int)]
+    # set background to transparent
+    colors[0] = (1.0, 1.0, 1.0, 0.0)
+    # set flat to blue
+    colors[1] = (1.0000, 0.5000, 0.7000, 1.0)
+
+    ax[0].imshow(image)
+    # set all 0 values of mask to nan
+    ax[1].imshow(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), cmap="gray")
+    ax[1].imshow(mask, alpha=0.5, cmap=mcolors.ListedColormap(colors))
+    ax[2].imshow(mask, cmap=mcolors.ListedColormap(colors))
+    for axes in ax:
+        axes.set_axis_off()
+        axes.get_xaxis().set_visible(False)
+        axes.get_yaxis().set_visible(False)
+        axes.set_xticklabels([])
+        axes.set_yticklabels([])
+    plt.subplots_adjust(wspace=0, hspace=0)
+    # create a patch (proxy artist) for every color
+    patches = [
+        mpatches.Patch(color=colors[i], label=labels[i]) for i in range(len(labels))
+    ]
+    # put those patched as legend-handles into the legend
+    plt.legend(
+        handles=patches,
+        bbox_to_anchor=(1.05, 1),
+        loc=2,
+        borderaxespad=0.0,
+        prop={"size": 6},
+    )
+    plt.savefig(savepath, bbox_inches="tight")
+    plt.close()
+
+
+## Torchvision visualization
+
+
 def show(folder, imgs, index, pred_box_count=0, target_box_count=0):
     """Show the images with the predicted and target masks and boxes.
 
@@ -88,151 +160,6 @@ def create_labels_and_colors(class_names, labels):
             colors.append("lightblue")
 
     return labels, colors
-
-
-def visualize_target_image_with_masks(image: np.array, mask: np.array, savepath: str):
-    image = (image.float() * 255).to(torch.uint8)
-    image = image.numpy()
-    image = np.moveaxis(image, 0, -1)
-    gray_image = image.copy()
-    gray_image = Image.fromarray(gray_image).convert("L")
-    gray_image = np.array(gray_image)
-
-    mask = mask.astype(np.float32)
-    mask[mask == 0] = np.nan
-
-    labels = {
-        0: "Background",
-        1: "Flat",
-        2: "North",
-        3: "Northeast",
-        4: "East",
-        5: "Southeast",
-        6: "South",
-        7: "Southwest",
-        8: "West",
-        9: "Northwest",
-    }
-    fig, ax = plt.subplots(1, 3, figsize=(19, 6))
-    # add a pixel from each class to the mask (for consistent color mapping)
-    for i in range(len(labels)):
-        mask[i, 0] = i
-    # create colormap for mask
-    colors_all = plt.cm.viridis(np.linspace(0, 1, 256))
-    # get index of colors to use
-    colors_idx = np.linspace(0, 256, len(labels) - 1)
-    # insert 0 at the beginning
-    colors_idx = np.insert(colors_idx, 0, 0)
-    # set last color to 255
-    colors_idx[-1] = 255
-    # get colors with index
-    colors = colors_all[colors_idx.astype(int)]
-    # set background to transparent
-    colors[0] = (1.0, 1.0, 1.0, 0.0)
-    # set flat to blue
-    colors[1] = (1.0000, 0.5000, 0.7000, 1.0)
-
-    ax[0].imshow(image)
-    # set all 0 values of mask to nan
-    ax[1].imshow(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), cmap="gray")
-    ax[1].imshow(mask, alpha=0.5, cmap=mcolors.ListedColormap(colors))
-    ax[2].imshow(mask, cmap=mcolors.ListedColormap(colors))
-    for axes in ax:
-        axes.set_axis_off()
-        axes.get_xaxis().set_visible(False)
-        axes.get_yaxis().set_visible(False)
-        axes.set_xticklabels([])
-        axes.set_yticklabels([])
-    plt.subplots_adjust(wspace=0, hspace=0)
-    # create a patch (proxy artist) for every color
-    patches = [
-        mpatches.Patch(color=colors[i], label=labels[i]) for i in range(len(labels))
-    ]
-    # put those patched as legend-handles into the legend
-    plt.legend(
-        handles=patches,
-        bbox_to_anchor=(1.05, 1),
-        loc=2,
-        borderaxespad=0.0,
-        prop={"size": 6},
-    )
-    plt.savefig(savepath, bbox_inches="tight")
-    plt.close()
-
-
-def blend_image_masks(
-    image: np.array, pred_mask: np.array, target_mask: np.array, savepath: str
-):
-    image = (image.float() * 255).to(torch.uint8)
-    image = np.moveaxis(image.numpy(), 0, -1)
-    gray_image = image.copy()
-    gray_image = Image.fromarray(gray_image).convert("L")
-    gray_image = np.array(gray_image)
-    pred_mask = pred_mask.astype(np.float32)
-    pred_mask[pred_mask == 0] = np.nan
-
-    target_mask = target_mask.astype(np.float32)
-    target_mask[target_mask == 0] = np.nan
-
-    labels = {
-        0: "Background",
-        1: "Flat",
-        2: "North",
-        3: "Northeast",
-        4: "East",
-        5: "Southeast",
-        6: "South",
-        7: "Southwest",
-        8: "West",
-        9: "Northwest",
-    }
-    fig, ax = plt.subplots(2, 3, figsize=(19, 6))
-    # First row
-
-    for i in range(1, 10):
-        pred_mask[i, 0] = i
-
-    for i in range(1, 10):
-        target_mask[i, 0] = i
-
-    ax[0, 0].imshow(image)
-    ax[0, 1].imshow(gray_image, cmap="gray")
-    ax[0, 1].imshow(pred_mask, alpha=0.5, cmap="viridis")
-    im = ax[0, 2].imshow(pred_mask)
-
-    # Second row
-    ax[1, 0].imshow(image)
-    ax[1, 1].imshow(gray_image, cmap="gray")
-    ax[1, 1].imshow(target_mask, alpha=0.5, cmap="viridis")
-    im = ax[1, 2].imshow(target_mask)
-    for axes in ax:
-        for i in range(0, 3):
-            axes[i].set_axis_off()
-            axes[i].get_xaxis().set_visible(False)
-            axes[i].get_yaxis().set_visible(False)
-            axes[i].set_xticklabels([])
-            axes[i].set_yticklabels([])
-    plt.subplots_adjust(wspace=0, hspace=0)
-    # get the colors of the values, according to the
-    # colormap used by imshow
-
-    patches = []
-    for label in labels:
-        patches.append(
-            mpatches.Patch(color=im.cmap(im.norm(label)), label=labels[label])
-        )
-
-    # put those patched as legend-handles into the legend
-    plt.legend(
-        handles=patches,
-        prop={"size": 8},
-        bbox_to_anchor=(1.05, 1),
-        loc=2,
-        borderaxespad=0.0,
-    )
-
-    plt.savefig(savepath, bbox_inches="tight")
-    plt.close()
 
 
 def prepare_masks_and_boxes(num_classes, image, masks, boxes, labels=None, colors=None):

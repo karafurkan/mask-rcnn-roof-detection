@@ -177,10 +177,7 @@ class ImageDataset(torch.utils.data.Dataset):
         if self.img_transforms is not None:
             img = self.img_transforms(img)
 
-        if self.mask_transforms is not None:
-            mask = cv2.resize(np.array(mask), (512, 512))
-        else:
-            mask = np.array(mask)
+        mask = np.array(mask)
 
         # img = np.array(img)
         # mask = np.array(mask)

@@ -154,8 +154,11 @@ def validate_model(loader, model, device="cuda", num_classes=3):
         model (_type_): NN model
         device (str, optional): GPU or CPU. Defaults to "cuda".
     """
+    val_loss = 0
+    loss_fn = torch.nn.CrossEntropyLoss()
+
     print("Validating model...")
-    threshold = 0.5  # TODO: Change threshold maybe: 0.75
+    threshold = 0.1  # TODO: Change threshold maybe: 0.75
     sum_f1_scores = 0
 
     torch.cuda.empty_cache()
@@ -198,20 +201,27 @@ def validate_model(loader, model, device="cuda", num_classes=3):
                 target_mask = combine_instance_masks(target_masks, target_labels)
                 combined_targes.append(target_mask)
 
-            pred_mask = np.stack(combined_preds, axis=0)
-            target_mask = np.stack(combined_targes, axis=0)
+                # Calculate validation loss
+                _pred = torch.from_numpy(pred_mask.astype(np.float32))
+                _target = torch.from_numpy(target_mask.astype(np.float32))
+                iter_loss = loss_fn(_pred, _target)
+                val_loss += iter_loss.item()
 
-            # Calculate F1 score for each class
-            f1_scores = f1_score_per_class(
-                outputs=pred_mask, targets=target_mask, num_classes=num_classes
-            )
-            sum_f1_scores = np.add(sum_f1_scores, f1_scores)
+                # Calculate F1 score for each class
+                sum_f1_scores = np.add(
+                    sum_f1_scores,
+                    f1_score_per_class(
+                        outputs=pred_mask, targets=target_mask, num_classes=num_classes
+                    ),
+                )
+            sum_f1_scores = sum_f1_scores / len(images)
 
     model.train()
     miou_score = 0
     pred_score = 0
+    val_loss = val_loss / len(loader)
     f1_score = sum_f1_scores / len(loader)
-    return miou_score, pred_score, f1_score
+    return miou_score, pred_score, f1_score, val_loss
 
 
 def plot_loss_graph(losses):

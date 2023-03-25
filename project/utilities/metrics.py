@@ -15,16 +15,14 @@ def f1_score_per_class(outputs, targets, num_classes, avg_option="macro"):
       to account for label imbalance; it can result in an F-score that is not between
       precision and recall.
     """
-    f1_scores = []
-    for i in range(num_classes):
-        f1_scores.append(
-            f1_score(
-                outputs[:, i].flatten(),
-                targets[:, i].flatten(),
-                average=avg_option,
-                zero_division=0,
-            )
-        )
+    labels = [i for i in range(num_classes)]
+    f1_scores = f1_score(
+        targets.flatten(),
+        outputs.flatten(),
+        labels=labels,
+        average=None,
+        zero_division=0,
+    )
     return f1_scores
 
 

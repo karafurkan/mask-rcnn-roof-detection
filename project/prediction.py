@@ -8,9 +8,6 @@ import numpy as np
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-reduced_classes = ["Background", "Flat", "Gable"]  # 0  # 1 # 3
-reduced_class_names = {i: class_name for i, class_name in enumerate(reduced_classes)}
-
 
 def predict(model, loader, num_classes, score_threshold=0.75):
     for image_idx, data in enumerate(loader):
@@ -56,15 +53,13 @@ def predict(model, loader, num_classes, score_threshold=0.75):
             vis_utils.visualize_target_image_with_masks(
                 test_image,
                 combined_pred_mask,
-                f"project/results/{image_idx}.png",
+                f"project/results/pred_{image_idx}.png",
             )
-
-            # vis_utils.blend_image_masks(
-            #     test_image,
-            #     combined_pred_mask,
-            #     combined_target_mask,
-            #     f"project/results/{image_idx}.png",
-            # )
+            vis_utils.visualize_target_image_with_masks(
+                test_image,
+                combined_target_mask,
+                f"project/results/target_{image_idx}.png",
+            )
 
 
 if __name__ == "__main__":
@@ -72,7 +67,7 @@ if __name__ == "__main__":
     hidden_layer = 256
     cp_path = f"project/checkpoints/hl_{hidden_layer}/cp_38.pth.tar"
 
-    test_images_root = "project/dataset/test/"
+    test_images_root = "project/dataset/val/"
     _, test_loader = utils.get_loaders(
         None, test_images_root, num_workers=0, batch_size=1
     )

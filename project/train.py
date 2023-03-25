@@ -15,7 +15,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 HIDDEN_LAYER = 256
 
 
-def train(model, train_loader, val_loader, optimizer, cp_epoch=0, n_epochs=10):
+def train(
+    model, train_loader, val_loader, optimizer, num_classes, cp_epoch=0, n_epochs=10
+):
     # Perform training loop for n epochs
 
     model.train()
@@ -27,14 +29,15 @@ def train(model, train_loader, val_loader, optimizer, cp_epoch=0, n_epochs=10):
     f1_scores_list = []
 
     # Validate model before training
-    miou_scores, pred_scores, f1_scores = utils.validate_model(
-        val_loader, model, device=device
+    miou_scores, pred_scores, f1_scores, val_score = utils.validate_model(
+        val_loader, model, device=device, num_classes=num_classes
     )
     miou_list.append(miou_scores)
     pred_scores_list.append(pred_scores)
     f1_scores_list.append(f1_scores)
     print("F1 scores: ", f1_scores)
-    # Star training loop
+    print("Validation loss: ", val_score)
+    # Start training loop
     for epoch in tqdm(range(n_epochs)):
         loss_epoch = []
         loop = tqdm(train_loader)
@@ -60,10 +63,10 @@ def train(model, train_loader, val_loader, optimizer, cp_epoch=0, n_epochs=10):
         # loss_epoch_mean_list.append(loss_epoch_mean)
         print("Average loss for epoch = {:.4f} ".format(loss_epoch_mean))
 
-        miou_scores, pred_scores, f1_scores = utils.validate_model(
-            val_loader, model, device=device
+        miou_scores, pred_scores, f1_scores, val_score = utils.validate_model(
+            val_loader, model, device=device, num_classes=num_classes
         )
-
+        print("Validation loss: ", val_score)
         miou_list.append(miou_scores)
         pred_scores_list.append(pred_scores)
         f1_scores_list.append(f1_scores)
@@ -95,7 +98,7 @@ if __name__ == "__main__":
     val_images_root = "project/dataset/val"
     batch_size = 2
     num_classes = 10
-    cp_epoch = 19
+    cp_epoch = None
 
     image_transforms = transforms.Compose(
         [
@@ -133,7 +136,9 @@ if __name__ == "__main__":
         model.roi_heads.mask_predictor = MaskRCNNPredictor(
             in_features_mask, HIDDEN_LAYER, num_classes
         )
+        cp_epoch = 0
     else:
+        print(f"Loading checkpoint from epoch {cp_epoch}...")
         cp_path = f"project/checkpoints/hl_{HIDDEN_LAYER}/cp_{cp_epoch}.pth.tar"
         model = utils.load_model(
             num_classes=num_classes,
@@ -154,6 +159,7 @@ if __name__ == "__main__":
         train_loader=train_loader,
         val_loader=val_loader,
         optimizer=optimizer,
-        cp_epoch=19,
+        num_classes=num_classes,
+        cp_epoch=cp_epoch,
         n_epochs=20,
     )
