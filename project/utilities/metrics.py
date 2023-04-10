@@ -1,85 +1,52 @@
 import torch
 import numpy as np
+from sklearn.metrics import f1_score
 
 
-def compute_f1_score(pred_masks, target_masks, n_classes=2):
-    f1_scores = []
-    for cls in range(n_classes):
-        pred_inds = (pred_masks == cls).long()
-        target_inds = (target_masks == cls).long()
-        tp = (pred_inds & target_inds).sum().float()
-        fp = (pred_inds & (~target_inds)).sum().float()
-        fn = ((~pred_inds) & target_inds).sum().float()
-        precision = tp / (tp + fp) if tp + fp > 0 else 0
-        recall = tp / (tp + fn) if tp + fn > 0 else 0
-        f1_scores.append(
-            2 * precision * recall / (precision + recall)
-            if precision + recall > 0
-            else 0
-        )
-    return torch.tensor(f1_scores).float()
+def f1_score_per_class(outputs, targets, num_classes, avg_option="macro"):
+    # Todo: Research average options
+    """
+    # micro: Calculate metrics globally by counting the total true positives,
+       false negatives and false positives.
+    # macro: Calculate metrics for each label, and find their unweighted mean.
+       This does not take label imbalance into account.
+    # weighted: Calculate metrics for each label, and find their average weighted
+      by support (the number of true instances for each label). This alters ‘macro’
+      to account for label imbalance; it can result in an F-score that is not between
+      precision and recall.
+    """
+    labels = [i for i in range(num_classes)]
+    f1_scores = f1_score(
+        targets.flatten(),
+        outputs.flatten(),
+        labels=labels,
+        average=None,
+        zero_division=0,
+    )
+    return f1_scores
 
 
-def compute_iou(pred_masks, target_masks, n_classes=2):
+def iou(pred, target, n_classes=3):
     ious = []
-    for idx in range(target_masks.shape[0]):  # loop over all instances in the image
-        iou = []
-        for cls in range(n_classes):
-            pred_inds = pred_masks == cls
-            target_inds = target_masks[idx] == cls
-            intersection = (pred_inds & target_inds).float().sum()
-            union = (pred_inds | target_inds).float().sum()
-            iou.append((intersection + 1e-7) / (union + 1e-7))
-        ious.append(iou)
-    return ious
+    pred = pred.view(-1)
+    target = target.view(-1)
 
+    # Ignore IoU for background class ("0")
+    for cls in range(1, n_classes):
+        pred_inds = pred == cls
+        target_inds = target == cls
+        intersection = (
+            (pred_inds[target_inds]).long().sum().data.cpu().item()
+        )  # Cast to long to prevent overflows
+        union = (
+            pred_inds.long().sum().data.cpu().item()
+            + target_inds.long().sum().data.cpu().item()
+            - intersection
+        )
+        if union > 0:
+            ious.append(float(intersection) / float(max(union, 1)))
 
-def compute_miou(pred_masks, target_masks, n_classes=2):
-    ious = compute_iou(pred_masks, target_masks, n_classes=2)
-    mean_iou = torch.tensor(ious).mean().item()
-    return mean_iou
-
-
-def compute_dice_score(pred, target, eps=1e-7, n_classes=2):
-    scores = []
-    for cls in range(n_classes):
-        pred_inds = pred["masks"].int() == cls
-        target_inds = (target["masks"] == cls).float()
-        intersection = (pred_inds * target_inds).sum()
-        union = pred_inds.sum() + target_inds.sum()
-        score = (2.0 * intersection + eps) / (union + eps)
-        scores.append(score)
-    return scores
-
-
-def mean_dice_score(pred, target, eps=1e-7, n_classes=2):
-    scores = compute_dice_score(pred, target, eps, n_classes)
-    mean_score = torch.mean(torch.tensor(scores))
-    return mean_score.item()
-
-
-# BUG: Accuracy is not working properly
-def compute_accuracy(pred_masks, target_masks, n_classes=2):
-    total = [0] * n_classes
-    correct = [0] * n_classes
-    for cls in range(n_classes):
-        pred_inds = pred_masks.int() == cls
-        target_inds = target_masks == cls
-        correct[cls] += (pred_inds == target_inds).float().sum().float()
-        total[cls] += target_inds.long().sum().float()
-    accuracies = []
-    for cls in range(n_classes):
-        if total[cls] == 0:
-            accuracies.append(float("nan"))
-        else:
-            accuracies.append(correct[cls] / total[cls])
-    return accuracies
-
-
-def mean_accuracy(pred_masks, target_masks, n_classes=2):
-    accs = compute_accuracy(pred_masks, target_masks, n_classes)
-    mean_acc = sum(accs[1:]) / (n_classes - 1)  # Skip background
-    return mean_acc.item()
+    return np.array(ious)
 
 
 def save_metric_scores(

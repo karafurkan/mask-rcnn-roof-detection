@@ -9,14 +9,14 @@ import shutil
 PATH_IMAGE_PKL = "/home/furkan/Desktop/pkl_files/images/"
 PATH_MASK_PKL = "/home/furkan/Desktop/pkl_files/masks/"
 
-TRAIN_IMAGE_PATH = "dataset/train/images"
-TRAIN_MASK_PATH = "dataset/train/masks"
+TRAIN_IMAGE_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/project/dataset/train/images"
+TRAIN_MASK_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/project/dataset/train/masks"
 
-VAL_IMAGE_PATH = "dataset/val/images"
-VAL_MASK_PATH = "dataset/val/masks"
+VAL_IMAGE_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/project/dataset/val/images"
+VAL_MASK_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/project/dataset/val/masks"
 
-TEST_IMAGE_PATH = "dataset/test/images"
-TEST_MASK_PATH = "dataset/test/masks"
+TEST_IMAGE_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/project/dataset/test/images"
+TEST_MASK_PATH = "/home/furkan/Projects/master_project/mask-rcnn-roof-detection/project/dataset/test/masks"
 
 
 # 0: Background
@@ -112,53 +112,20 @@ def process_masks(filename="masks.pkl", counter=0):
     return counter
 
 
-def create_train_val_test_split(validation_percent=1, test_percent=1):
-    image_files = [
-        f for f in os.listdir(TRAIN_IMAGE_PATH) if isfile(join(TRAIN_IMAGE_PATH, f))
-    ]
-    random.shuffle(image_files)
-
-    number_of_val_imgs = int((len(image_files) * validation_percent) / 100)
-    number_of_test_imgs = int((len(image_files) * test_percent) / 100)
-
-    # Move to validation image folder
-    for idx, img in enumerate(image_files):
-        # move images
-        shutil.move(f"{TRAIN_IMAGE_PATH}/{img}", f"{VAL_IMAGE_PATH}/{img}")
-        # move masks
-        shutil.move(f"{TRAIN_MASK_PATH}/{img}", f"{VAL_MASK_PATH}/{img}")
-        if idx == number_of_val_imgs:
-            break
-
-    image_files = [
-        f for f in os.listdir(TRAIN_IMAGE_PATH) if isfile(join(TRAIN_IMAGE_PATH, f))
-    ]
-    random.shuffle(image_files)
-    # Move to test image folder
-    for idx, img in enumerate(image_files):
-        # move images
-        shutil.move(f"{TRAIN_IMAGE_PATH}/{img}", f"{TEST_IMAGE_PATH}/{img}")
-        # move masks
-        shutil.move(f"{TRAIN_MASK_PATH}/{img}", f"{TEST_MASK_PATH}/{img}")
-        if idx == number_of_test_imgs:
-            break
-
-
 if __name__ == "__main__":
 
-    # image_files = sorted(
-    #     [f for f in os.listdir(PATH_IMAGE_PKL) if isfile(join(PATH_IMAGE_PKL, f))]
-    # )
+    image_files = sorted(
+        [f for f in os.listdir(PATH_IMAGE_PKL) if isfile(join(PATH_IMAGE_PKL, f))]
+    )
 
-    # img_counter = 0
-    # mask_counter = 0
+    img_counter = 0
+    mask_counter = 0
 
-    # for image_file in image_files:
-    #     mask_file = "masks_" + image_file.split("_")[1]
-    #     print(f"Processing image file: {image_file}")
-    #     img_counter = process_images(filename=image_file, counter=img_counter)
-    #     print(f"Processing mask file: {mask_file}")
-    #     mask_counter = process_masks(filename=mask_file, counter=mask_counter)
-    #     if img_counter > 9000:
-    #         break
-    create_train_val_test_split()
+    for image_file in image_files:
+        mask_file = "masks_" + image_file.split("_")[1]
+        print(f"Processing image file: {image_file}")
+        img_counter = process_images(filename=image_file, counter=img_counter)
+        print(f"Processing mask file: {mask_file}")
+        mask_counter = process_masks(filename=mask_file, counter=mask_counter)
+        if img_counter > 9000:
+            break

@@ -1,6 +1,7 @@
 import torch
 import torchvision
 from torchvision.models.detection import MaskRCNN_ResNet50_FPN_Weights
+import numpy as np
 import unittest
 
 from project.prediction import load_model
@@ -29,6 +30,16 @@ class TestModel(unittest.TestCase):
             num_classes=num_classes, hidden_layer=hidden_layer, cp_path=cp_path
         )
         # self.assertEqual(predictions, 5)
+        return True
+
+    def test_model_metrics(self):
+
+        outputs = np.random.randint(0, 3, size=(2, 1024, 2014))
+        targets = np.random.randint(0, 3, size=(2, 1024, 2014))
+        score = metrics.f1_score_per_class(
+            outputs=outputs, targets=targets, num_classes=3
+        )
+        print(score)
         return True
 
 
